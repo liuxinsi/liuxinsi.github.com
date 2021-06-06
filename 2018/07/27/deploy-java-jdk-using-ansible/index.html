@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  
+  <title>使用Ansible2.0部署JDK8 | Code And Coffee|Ansible2.0部署java出现的问题,ERROR! Syntax Error while loading YAML.,ansible-playbook --syntax-check now behaves erratically for two situations</title>
+  <meta name="keywords" content="Ansible,ERROR! Syntax Error while loading YAML.,ansible-playbook --syntax-check now behaves erratically for two situations,Ansible2.0部署java出现的问题,ERROR! Syntax Error while loading YAML.,ansible-playbook --syntax-check now behaves erratically for two situations">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="Ansible2.0部署java出现的问题,ERROR! Syntax Error while loading YAML.,ansible-playbook --syntax-check now behaves erratically for two situations">
+<meta name="keywords" content="Ansible,ERROR! Syntax Error while loading YAML.,ansible-playbook --syntax-check now behaves erratically for two situations">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用Ansible2.0部署JDK8">
+<meta property="og:url" content="https://codeandcoffee.cn/2018/07/27/deploy-java-jdk-using-ansible/index.html">
+<meta property="og:site_name" content="Code And Coffee">
+<meta property="og:description" content="Ansible2.0部署java出现的问题,ERROR! Syntax Error while loading YAML.,ansible-playbook --syntax-check now behaves erratically for two situations">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-02-09T03:00:36.336Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="使用Ansible2.0部署JDK8">
+<meta name="twitter:description" content="Ansible2.0部署java出现的问题,ERROR! Syntax Error while loading YAML.,ansible-playbook --syntax-check now behaves erratically for two situations">
+  
+  
+  
+    <link rel="icon" href="https://codeandcoffee.cn/icon.png">
+  
+  
+    <link href="https://codeandcoffee.cn/css.css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Code And Coffee</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">little thing stoppin</a><br/><br/>
+          <a href="https://github.com/liuxinsi" target="_blank"><image src="https://codeandcoffee.cn/fluidicon.png" width="2%" height="2%"/></a>&nbsp;
+          <a href="https://codeandcoffee.cn/resume.html" target="_blank"><image src="https://codeandcoffee.cn/handshake.png"  width="2%" height="2%"/></a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://codeandcoffee.cn"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-deploy-java-jdk-using-ansible" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/07/27/deploy-java-jdk-using-ansible/" class="article-date">
+  <time datetime="2018-07-27T10:00:17.000Z" itemprop="datePublished">2018-07-27</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Linux/">Linux</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      使用Ansible2.0部署JDK8
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近需要在多台新服务器部署Java环境，想到要重复同样的事这么多次就头疼，后来突然想到运维神器Ansible可以自动化部署，并且仅依赖ssh，只要在一台服务器上安装Ansible就可以，所以就想用Ansible来解决，因为毕竟偏运维所以也不想深究什么原理架构之类的，还是以解决实际问题为主，写死路径，丑陋什么的都无所谓。</p>
+<p>所以没跟着官网文档做，直接在网上找了一篇入门教程就干了起来。<br>根据网上的教程添加个hosts文件用于管理服务器ip与提取公共变量。</p>
+<figure class="highlight plain"><figcaption><span>hosts</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[local]</span><br><span class="line">192.168.100.129</span><br><span class="line">[dw]</span><br><span class="line">192.168.100.130</span><br><span class="line">192.168.100.131</span><br><span class="line">192.168.100.132</span><br></pre></td></tr></table></figure>
+<p>然后开始写yml格式playbook。<br><figure class="highlight plain"><figcaption><span>main.yml</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- name: mkdir</span><br><span class="line">shell: mkdir -p /root/java/</span><br><span class="line">- name: copy jdk to remote host</span><br><span class="line">copy: src=jdk-8u161-linux-x64.tar.gz dest=/root/java/</span><br><span class="line">- name: unzip jdk</span><br><span class="line">shell: tar -zxf /root/java/jdk-8u161-linux-x64.tar.gz -C /root/java/</span><br><span class="line">- name: set jdk_env copy use template</span><br><span class="line">template: src=java_home.sh.j2 dest=/root/java/set_jdk.sh</span><br><span class="line">- name: execute script to set jdkenv</span><br><span class="line">shell: sh /root/java/set_jdk.sh</span><br><span class="line">- name: source bash_profile</span><br><span class="line">shell: source /root/.bash_profile</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>在root新建文件夹。</li>
+<li>拷贝jdk到新建的文件夹。</li>
+<li>解压jdk。</li>
+<li>拷贝设置环境变量的脚本到新建的文件夹下。</li>
+<li>执行设置环境变量的脚本。</li>
+<li>使刚才设置的环境变量生效。</li>
+</ul>
+<p>看起来没什么问题，于是直接执行。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ansible-playbook playbook/roles/java/tasks/main.yml</span><br></pre></td></tr></table></figure></p>
+<p>直接报错：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">The error appears to have been in &apos;/etc/ansible/playbook/roles/java/tasks/main.yml&apos;: line 1, column 1, but may</span><br><span class="line">be elsewhere in the file depending on the exact syntax problem.</span><br><span class="line"></span><br><span class="line">The offending line appears to be:</span><br><span class="line"></span><br><span class="line">- name: mkdir</span><br><span class="line">^ here</span><br></pre></td></tr></table></figure></p>
+<p>看错误是解析yml失败了，猜测可能是空格或tab的原因导致，查看了下yml官方要求是用一个空格，但脚本里也都是空格没有tab。</p>
+<p>没办法最后只能翻官方文档，看了官方的例子发现playbook的脚本格式与网上的教程都不一样，所以当时想会不会是因为用的Ansible2.0版本格式规则全变了，又不向下兼容导致。<br>所以写了个新建文件的小例子测试下。果然，2.0的格式与低版本的不一样，<strong>并且不向下兼容老本的playbook。</strong></p>
+<p>完整正确的Ansible2.0部署JDK的例子是：</p>
+<ul>
+<li><p>1.约定优于配置的情况下，官方建议的playbook、文件等存放的目录结构应该是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">/etc/ansible/</span><br><span class="line">├── hosts</span><br><span class="line">└── playbook</span><br><span class="line">    └── roles</span><br><span class="line">        └── java</span><br><span class="line">            └── tasks</span><br><span class="line">                ├── files</span><br><span class="line">                │   └── jdk-8u161-linux-x64.tar.gz</span><br><span class="line">                ├── main.yml</span><br><span class="line">                └── templates</span><br><span class="line">                    └── java_home.sh.j2</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>2.playbook文件格式：</p>
+<figure class="highlight plain"><figcaption><span>main.yml</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">- hosts: dw</span><br><span class="line">  tasks:</span><br><span class="line">    - name: mkdir</span><br><span class="line">      shell: mkdir -p /root/java/</span><br><span class="line">    - name: copy jdk to remote host</span><br><span class="line">      copy: src=jdk-8u161-linux-x64.tar.gz dest=/root/java/</span><br><span class="line">    - name: unzip jdk</span><br><span class="line">      shell: tar -zxf /root/java/jdk-8u161-linux-x64.tar.gz -C /root/java/</span><br><span class="line">    - name: set jdk_env copy use template</span><br><span class="line">      template: src=java_home.sh.j2 dest=/root/java/set_jdk.sh</span><br><span class="line">    - name: execute script to set jdkenv</span><br><span class="line">      shell: sh /root/java/set_jdk.sh</span><br><span class="line">    - name: source bash_profile</span><br><span class="line">      shell: source /root/.bash_profile</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>增加了hosts，用于指定部署的服务器组，并且原本独立的命令移动到tasks下。</p>
+<ul>
+<li><p>3.设置环境变量的脚本：</p>
+<figure class="highlight plain"><figcaption><span>java_home.sh.j2</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#!/bin/bash</span><br><span class="line">echo &apos;export JAVA_HOME=/root/java/jdk1.8.0_161&apos; &gt;&gt; /root/.bash_profile</span><br><span class="line">echo &apos;export PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:$PATH&apos; &gt;&gt; /root/.bash_profile</span><br><span class="line">echo &apos;export CLASSPATH=.$CLASSPATH:$JAVA_HOME/lib:$JAVA_HOME/jre/lib:$JAVA_HOME/lib/tools.jar&apos; &gt;&gt; /root/.bash_profile</span><br><span class="line">source ~/.bash_profile</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>最后执行命令：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ansible-playbook playbook/roles/java/tasks/main.yml</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>控制台输出：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">PLAY [dw] ***********************************************************************************************************************************************************************************************************</span><br><span class="line"></span><br><span class="line">TASK [Gathering Facts] **********************************************************************************************************************************************************************************************</span><br><span class="line">ok: [192.168.100.131]</span><br><span class="line">ok: [192.168.100.132]</span><br><span class="line">ok: [192.168.100.130]</span><br><span class="line"></span><br><span class="line">TASK [mkdir] ********************************************************************************************************************************************************************************************************</span><br><span class="line"> [WARNING]: Consider using the file module with state=directory rather than running mkdir.  If you need to use command because file is insufficient you can add warn=False to this command task or set</span><br><span class="line">command_warnings=False in ansible.cfg to get rid of this message.</span><br><span class="line"></span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line"></span><br><span class="line">TASK [copy jdk to remote host] **************************************************************************************************************************************************************************************</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line"></span><br><span class="line">TASK [unzip jdk] ****************************************************************************************************************************************************************************************************</span><br><span class="line"> [WARNING]: Consider using the unarchive module rather than running tar.  If you need to use command because unarchive is insufficient you can add warn=False to this command task or set command_warnings=False in</span><br><span class="line">ansible.cfg to get rid of this message.</span><br><span class="line"></span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line"></span><br><span class="line">TASK [set jdk_env copy use template] ********************************************************************************************************************************************************************************</span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line"></span><br><span class="line">TASK [execute script to set jdkenv] *********************************************************************************************************************************************************************************</span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line"></span><br><span class="line">TASK [source bash_profile] ******************************************************************************************************************************************************************************************</span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line"></span><br><span class="line">PLAY RECAP **********************************************************************************************************************************************************************************************************</span><br><span class="line">192.168.100.130            : ok=7    changed=6    unreachable=0    failed=0   </span><br><span class="line">192.168.100.131            : ok=7    changed=6    unreachable=0    failed=0   </span><br><span class="line">192.168.100.132            : ok=7    changed=6    unreachable=0    failed=0</span><br></pre></td></tr></table></figure></p>
+<p>执行成功，部署全部正确完成。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/07/27/deploy-java-jdk-using-ansible/" data-id="ckpl281sk0003v6se3ujr5ung" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/07/27/deploy-java-jdk-using-ansible/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux/">Linux</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2018/10/21/java-file-lock-on-linux/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          在Linux下正确的使用Java锁
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2018/05/13/spark-broadcast-mutable-hashmap-is-empty/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Spark踩坑3-共享Scala集合类</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = https://codeandcoffee.cn/2018/07/27/deploy-java-jdk-using-ansible/;
+  this.page.identifier = https://codeandcoffee.cn/2018/07/27/deploy-java-jdk-using-ansible/; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/MongoDB/">MongoDB</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spark/">Spark</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/业务/">业务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Bug/">Bug</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cheetsheet/">Cheetsheet</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/">Docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPClient/">FTPClient</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPServer/">FTPServer</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FileLock/">FileLock</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gson/">Gson</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jersey/">Jersey</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/KONG/">KONG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kryo/">Kryo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/">Linux</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MongoDB/">MongoDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Morphia/">Morphia</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NFS/">NFS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nacos/">Nacos</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/">Nginx</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenSSH/">OpenSSH</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SOCKET/">SOCKET</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spark/">Spark</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring-Boot/">Spring-Boot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swagger/">Swagger</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/TCP/">TCP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tomcat/">Tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ramfs/">ramfs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/业务/">业务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/优化/">优化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全传输/">安全传输</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/微服务/">微服务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/设计/">设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Ansible/" style="font-size: 10px;">Ansible</a> <a href="/tags/Bug/" style="font-size: 10px;">Bug</a> <a href="/tags/Cheetsheet/" style="font-size: 10px;">Cheetsheet</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/FTPClient/" style="font-size: 10px;">FTPClient</a> <a href="/tags/FTPServer/" style="font-size: 10px;">FTPServer</a> <a href="/tags/FileLock/" style="font-size: 10px;">FileLock</a> <a href="/tags/Gson/" style="font-size: 10px;">Gson</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Jersey/" style="font-size: 12.5px;">Jersey</a> <a href="/tags/KONG/" style="font-size: 10px;">KONG</a> <a href="/tags/Kryo/" style="font-size: 10px;">Kryo</a> <a href="/tags/Linux/" style="font-size: 20px;">Linux</a> <a href="/tags/Microservices/" style="font-size: 15px;">Microservices</a> <a href="/tags/MongoDB/" style="font-size: 17.5px;">MongoDB</a> <a href="/tags/Morphia/" style="font-size: 12.5px;">Morphia</a> <a href="/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/tags/Nacos/" style="font-size: 10px;">Nacos</a> <a href="/tags/Nginx/" style="font-size: 10px;">Nginx</a> <a href="/tags/OpenSSH/" style="font-size: 10px;">OpenSSH</a> <a href="/tags/RESTful-Api/" style="font-size: 17.5px;">RESTful Api</a> <a href="/tags/SOCKET/" style="font-size: 10px;">SOCKET</a> <a href="/tags/Spark/" style="font-size: 15px;">Spark</a> <a href="/tags/Spring-Boot/" style="font-size: 10px;">Spring-Boot</a> <a href="/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/tags/TCP/" style="font-size: 10px;">TCP</a> <a href="/tags/Tomcat/" style="font-size: 10px;">Tomcat</a> <a href="/tags/ramfs/" style="font-size: 10px;">ramfs</a> <a href="/tags/业务/" style="font-size: 10px;">业务</a> <a href="/tags/优化/" style="font-size: 10px;">优化</a> <a href="/tags/安全传输/" style="font-size: 10px;">安全传输</a> <a href="/tags/安全认证技术/" style="font-size: 12.5px;">安全认证技术</a> <a href="/tags/微服务/" style="font-size: 12.5px;">微服务</a> <a href="/tags/设计/" style="font-size: 10px;">设计</a> <a href="/tags/踩坑/" style="font-size: 20px;">踩坑</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">七月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/10/">十月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/07/07/nacos-ephemeral/">Nacos临时节点和永久节点的本质意义</a>
+          </li>
+        
+          <li>
+            <a href="/2019/03/11/design-for-abnormal-payment/">奇葩的异常支付场景</a>
+          </li>
+        
+          <li>
+            <a href="/2019/01/21/macvim-spacevim-characters-illegible-contents/">MacVim使用SpaceVim后中文乱码</a>
+          </li>
+        
+          <li>
+            <a href="/2018/12/01/secure-data-transmission-plan/">相对安全的网络传输方案</a>
+          </li>
+        
+          <li>
+            <a href="/2018/10/21/java-file-lock-on-linux/">在Linux下正确的使用Java锁</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2021 Liu Xin Si<br>
+      Powered by <a href="http://hexo.io/" rel='external nofollow' target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'liuxinsi';
+  
+  var disqus_url = 'https://codeandcoffee.cn/2018/07/27/deploy-java-jdk-using-ansible/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

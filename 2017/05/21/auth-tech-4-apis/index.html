@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  
+  <title>API安全认证技术(翻译) | Code And Coffee|API安全认证cheetsheet</title>
+  <meta name="keywords" content="微服务,restful api,stateless,jwt,oauth,cheetsheet,API安全认证cheetsheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="API安全认证cheetsheet">
+<meta name="keywords" content="微服务,restful api,stateless,jwt,oauth,cheetsheet">
+<meta property="og:type" content="article">
+<meta property="og:title" content="API安全认证技术(翻译)">
+<meta property="og:url" content="https://codeandcoffee.cn/2017/05/21/auth-tech-4-apis/index.html">
+<meta property="og:site_name" content="Code And Coffee">
+<meta property="og:description" content="API安全认证cheetsheet">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-02-09T03:00:36.339Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="API安全认证技术(翻译)">
+<meta name="twitter:description" content="API安全认证cheetsheet">
+  
+  
+  
+    <link rel="icon" href="https://codeandcoffee.cn/icon.png">
+  
+  
+    <link href="https://codeandcoffee.cn/css.css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Code And Coffee</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">little thing stoppin</a><br/><br/>
+          <a href="https://github.com/liuxinsi" target="_blank"><image src="https://codeandcoffee.cn/fluidicon.png" width="2%" height="2%"/></a>&nbsp;
+          <a href="https://codeandcoffee.cn/resume.html" target="_blank"><image src="https://codeandcoffee.cn/handshake.png"  width="2%" height="2%"/></a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://codeandcoffee.cn"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-auth-tech-4-apis" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/05/21/auth-tech-4-apis/" class="article-date">
+  <time datetime="2017-05-21T02:19:45.000Z" itemprop="datePublished">2017-05-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/微服务/">微服务</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      API安全认证技术(翻译)
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>在网上看到的一个API安全认证技术对比表格，觉得蛮好的，方案选型时用的上，MARK并翻译一下。</p>
+<p>原文来自：<a href="https://docs.google.com/spreadsheets/d/1tAX5ZJzluilhoYKjra-uHbMCZraaQkqIHl3RIQ8mVkM/htmlview?sle=true#gid=0" target="_blank" rel="noopener">Authentication Techniques for APIs</a></p>
+<p>Hexo的表格渲染太烂了。。。还是看原文吧</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</th>
+<th style="text-align:center">HTTP Basic Auth</th>
+<th style="text-align:center">Stateless Session Cookie</th>
+<th style="text-align:center">JWT</th>
+<th style="text-align:center">Stateful Session Cookie</th>
+<th style="text-align:center">Random Token</th>
+<th style="text-align:center">Full Request Signature</th>
+<th style="text-align:center">OAuth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">简介</td>
+<td style="text-align:center">基础认证，需要每个请求都附带用户名与密码</td>
+<td style="text-align:center">对包含用户信息的cookie进行签名或加密，通常Web框架可以处理</td>
+<td style="text-align:center">对用户信息签名或加密到一个编码后的json字符串，每个语言都有经过良好测试的类库可以利用</td>
+<td style="text-align:center">标准cookie，大部分web框架和浏览器支持</td>
+<td style="text-align:center">一个不包含任何信息 强壮、安全的随机令牌，无法被猜测。等价于session id</td>
+<td style="text-align:center">通过AWS认证普及开来的一种机制。客户端与服务端共享一个秘钥，客户端使用这个秘钥对整个请求进行签名，服务端通过这个秘钥对请求进行验证。<a href="http://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html" target="_blank" rel="noopener">AWS文档</a></td>
+<td style="text-align:center">当你想从第三方应用中获取你用户的信息，可以使用这种机制。如果你没有第三个应用，oauth机制则有点大材小用</td>
+</tr>
+<tr>
+<td style="text-align:left">适用场景</td>
+<td style="text-align:center">最好仅用在内网没什么价值的服务端接口认证</td>
+<td style="text-align:center">如果仅仅开发一个基于web的应用，并且你的框架支持，而且你没有一个类似Redis/Memcache的分布缓存，那么可以用用，但不要自己实现(利用框架或容器)</td>
+<td style="text-align:center">当你可以放弃自动过期与主动失效机制时，原生移动端，web移动端，服务端适用</td>
+<td style="text-align:center">适用于可以把信息存储到数据库或分布式缓存中的web应用</td>
+<td style="text-align:center">如果你有一个类似redis或memcache的分布式缓存那么web应用与移动应用适用，服务端更适合基于JWT的一次性令牌</td>
+<td style="text-align:center">当你为你的客户端提供管理加解密算法的类库并且在意重放攻击的服务端应用适用。实际上，为每个请求使用JWT并且将url和关键请求参数包含到JWT中，这种方法最大的好处是不用实现复杂的标准算法</td>
+<td style="text-align:center">适用于你要从外部第三方应用获取数据并且你的用户授权第三方应用提供他的数据给你的场景，如果不是，oauth有点大材小用</td>
+</tr>
+<tr>
+<td style="text-align:left">存储机制</td>
+<td style="text-align:center">用户名密码存储在服务端。用户名密码附带在每个请求上，服务端通过传递过来的用户名密码校验用户是否合法，校验通过后进行请求对应的操作</td>
+<td style="text-align:center">存在cookie中</td>
+<td style="text-align:center">编码后的json(令牌)中</td>
+<td style="text-align:center">服务端的内存、数据库、分布式缓存或磁盘中</td>
+<td style="text-align:center">服务端的内存、数据库、分布式缓存或磁盘中</td>
+<td style="text-align:center">服务端，userid通过请求传递，服务器通过签名确定用户，然后从数据库中获取想要的信息</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">过期策略</td>
+<td style="text-align:center">无，服务器端管理</td>
+<td style="text-align:center">有，cookie控制</td>
+<td style="text-align:center">有，令牌控制</td>
+<td style="text-align:center">有，服务端控制</td>
+<td style="text-align:center">有，服务端控制</td>
+<td style="text-align:center">通过请求传递，通常仅设置一个很短的时间</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">加密机制</td>
+<td style="text-align:center">无</td>
+<td style="text-align:center">有，通常web框架处理</td>
+<td style="text-align:center">有，有成熟的第三方类库</td>
+<td style="text-align:center">无</td>
+<td style="text-align:center">无</td>
+<td style="text-align:center">有，但是AWS没有提供类库，可以提供一个自己的客户端类库，否则很痛苦</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">闲置过期(失效/超时)</td>
+<td style="text-align:center">无，不要将此技术用于基于Web的客户端</td>
+<td style="text-align:center">服务端需要为每个请求的cookie设置新的超时时间，如果web框架不支持，自己处理会很痛苦</td>
+<td style="text-align:center">有很痛苦，你需要刷新客户端提供令牌，并且要在数据库或缓存中维护令牌最后一次请求时间，而且已然失去无状态的好处</td>
+<td style="text-align:center">有，每个web框架都以实现</td>
+<td style="text-align:center">有，每个进来的请求在服务端判断超时时间</td>
+<td style="text-align:center">无意义</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">主动失效</td>
+<td style="text-align:center">无，不要将此技术用于基于Web的客户端(前面直翻，其实依赖服务端)</td>
+<td style="text-align:center">很痛苦，需要在一个分布式存储中维护一个撤销列表。这样已然失去无状态的好处</td>
+<td style="text-align:center">很痛苦，需要在一个分布式存储中维护一个撤销列表。这样已然失去无状态的好处</td>
+<td style="text-align:center">有，实际上取决于使用的web框架</td>
+<td style="text-align:center">有，在服务端删除生成的令牌那么下个进来的请求将被认为未授权的请求</td>
+<td style="text-align:center">有，服务端可以请求拒绝请求</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">浏览器存储</td>
+<td style="text-align:center">无，不要将此技术用于基于Web的客户端</td>
+<td style="text-align:center">浏览器自动存储，程序无需处理</td>
+<td style="text-align:center">有，开发人员需要编码存储token。通常是sessionStorage或localStorage中</td>
+<td style="text-align:center">浏览器自动存储，程序无需处理</td>
+<td style="text-align:center">有，开发人员需要编码存储token。通常是sessionStorage或localStorage中</td>
+<td style="text-align:center">不适用，此机制不适合web应用</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">凭证传递</td>
+<td style="text-align:center">通过HTTP头 Authorization传递。<br> Example: <br>  Authorization: Basic QWxhZGRpbjpPcGVuU2VzYW1l 用户名密码没有被加密</td>
+<td style="text-align:center">通过cookie传递，浏览器自动发送到服务器</td>
+<td style="text-align:center">通过请求头Authorization: Bearer &lt;token>传递，开发人员需要编码为每个请求添加</td>
+<td style="text-align:center">通过cookie传递，浏览器自动发送到服务器</td>
+<td style="text-align:center">通过请求头Authorization: Bearer &lt;token>传递，开发人员需要编码为每个请求添加</td>
+<td style="text-align:center">通过请求头Authorization传递，但是适用自定义的schema替换了”bearer”。开发人员需要编码为每个请求添加</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">CSRF预防</td>
+<td style="text-align:center">非常脆弱，不要用在基于Web应用，除非是非常没价值的内网web应用</td>
+<td style="text-align:center">非常脆弱，开发者需要自己预防跨站脚本攻击</td>
+<td style="text-align:center">可以预防，请求头中包含token</td>
+<td style="text-align:center">非常脆弱，开发者需要自己预防跨站脚本攻击</td>
+<td style="text-align:center">可以预防，请求头中包含token</td>
+<td style="text-align:center">不适用，此机制不适合web应用</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">移动端适用</td>
+<td style="text-align:center">不要使用，web应用无法安全的存储凭证，同时用户也不会想手动的为每个请求输入凭证</td>
+<td style="text-align:center">原生移动端会很痛苦，避免为原生移动端基于session认证的api</td>
+<td style="text-align:center">移动端用户期望只需登录一次，JWT通过设置一个长的失效时间可以实现，但是更好的策略是用一个不存储任何信息的安全随机令牌</td>
+<td style="text-align:center">原生移动端会很痛苦，避免为原生移动端基于session认证的api</td>
+<td style="text-align:center">在第一次登录的时候创建一个随机令牌，在app的整个生命周期中使用它</td>
+<td style="text-align:center">不适用，此机制不适用web应用</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">服务端适用</td>
+<td style="text-align:center">如果服务端应用(内网相互调用的服务)基于HTTPS，基础认证也许是个不错(方便)的选择。基础认证使用非常简单，客户端与服务端框架的支持非常好</td>
+<td style="text-align:center">服务端应用会很痛苦，避免为服务端提供基于session认证的api</td>
+<td style="text-align:center">创建一个公私秘钥对，然后让客户端使用私钥生成JWT，服务端通过公钥进行验证。也可以维护一个共享的口令来创建JWT。当然公私秘钥对最佳。为每个请求创建JWT，同时设置一个很短的过期时间</td>
+<td style="text-align:center">服务端应用会很痛苦，避免为服务端提供基于session认证的api</td>
+<td style="text-align:center">类似客户端传递api key，不过如果其他人获取了api key有可能造成重放攻击。服务端最好使用JWT公私秘钥对</td>
+<td style="text-align:center">如果服务端需要更高的安全性这是首选，原则上类似JWT共享秘钥，但在此机制下所有的东西都会被签名：url、请求参数、请求头、请求体</td>
+<td style="text-align:center">TBD</td>
+</tr>
+<tr>
+<td style="text-align:left">重放攻击预防</td>
+<td style="text-align:center">绝对有可能</td>
+<td style="text-align:center">有可能</td>
+<td style="text-align:center">如果过期时间很长，那很有可能，如果每个请求的JWT只用一次那么重放会变的很难</td>
+<td style="text-align:center">有可能</td>
+<td style="text-align:center">有可能</td>
+<td style="text-align:center">所有东西都被签名了，不可能重放</td>
+<td style="text-align:center">TBD</td>
+</tr>
+</tbody>
+</table>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2017/05/21/auth-tech-4-apis/" data-id="ckpl281se0002v6se7epml5t8" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2017/05/21/auth-tech-4-apis/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Cheetsheet/">Cheetsheet</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2017/06/01/mongodb-oom-killer/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          MongoDB被Linux OOM Kill
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2017/05/12/jersey-gzipencoder/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Jersey开启Gzip踩的坑</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = https://codeandcoffee.cn/2017/05/21/auth-tech-4-apis/;
+  this.page.identifier = https://codeandcoffee.cn/2017/05/21/auth-tech-4-apis/; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/MongoDB/">MongoDB</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spark/">Spark</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/业务/">业务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Bug/">Bug</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cheetsheet/">Cheetsheet</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/">Docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPClient/">FTPClient</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPServer/">FTPServer</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FileLock/">FileLock</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gson/">Gson</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jersey/">Jersey</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/KONG/">KONG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kryo/">Kryo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/">Linux</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MongoDB/">MongoDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Morphia/">Morphia</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NFS/">NFS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nacos/">Nacos</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/">Nginx</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenSSH/">OpenSSH</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SOCKET/">SOCKET</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spark/">Spark</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring-Boot/">Spring-Boot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swagger/">Swagger</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/TCP/">TCP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tomcat/">Tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ramfs/">ramfs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/业务/">业务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/优化/">优化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全传输/">安全传输</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/微服务/">微服务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/设计/">设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Ansible/" style="font-size: 10px;">Ansible</a> <a href="/tags/Bug/" style="font-size: 10px;">Bug</a> <a href="/tags/Cheetsheet/" style="font-size: 10px;">Cheetsheet</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/FTPClient/" style="font-size: 10px;">FTPClient</a> <a href="/tags/FTPServer/" style="font-size: 10px;">FTPServer</a> <a href="/tags/FileLock/" style="font-size: 10px;">FileLock</a> <a href="/tags/Gson/" style="font-size: 10px;">Gson</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Jersey/" style="font-size: 12.5px;">Jersey</a> <a href="/tags/KONG/" style="font-size: 10px;">KONG</a> <a href="/tags/Kryo/" style="font-size: 10px;">Kryo</a> <a href="/tags/Linux/" style="font-size: 20px;">Linux</a> <a href="/tags/Microservices/" style="font-size: 15px;">Microservices</a> <a href="/tags/MongoDB/" style="font-size: 17.5px;">MongoDB</a> <a href="/tags/Morphia/" style="font-size: 12.5px;">Morphia</a> <a href="/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/tags/Nacos/" style="font-size: 10px;">Nacos</a> <a href="/tags/Nginx/" style="font-size: 10px;">Nginx</a> <a href="/tags/OpenSSH/" style="font-size: 10px;">OpenSSH</a> <a href="/tags/RESTful-Api/" style="font-size: 17.5px;">RESTful Api</a> <a href="/tags/SOCKET/" style="font-size: 10px;">SOCKET</a> <a href="/tags/Spark/" style="font-size: 15px;">Spark</a> <a href="/tags/Spring-Boot/" style="font-size: 10px;">Spring-Boot</a> <a href="/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/tags/TCP/" style="font-size: 10px;">TCP</a> <a href="/tags/Tomcat/" style="font-size: 10px;">Tomcat</a> <a href="/tags/ramfs/" style="font-size: 10px;">ramfs</a> <a href="/tags/业务/" style="font-size: 10px;">业务</a> <a href="/tags/优化/" style="font-size: 10px;">优化</a> <a href="/tags/安全传输/" style="font-size: 10px;">安全传输</a> <a href="/tags/安全认证技术/" style="font-size: 12.5px;">安全认证技术</a> <a href="/tags/微服务/" style="font-size: 12.5px;">微服务</a> <a href="/tags/设计/" style="font-size: 10px;">设计</a> <a href="/tags/踩坑/" style="font-size: 20px;">踩坑</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">七月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/10/">十月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/07/07/nacos-ephemeral/">Nacos临时节点和永久节点的本质意义</a>
+          </li>
+        
+          <li>
+            <a href="/2019/03/11/design-for-abnormal-payment/">奇葩的异常支付场景</a>
+          </li>
+        
+          <li>
+            <a href="/2019/01/21/macvim-spacevim-characters-illegible-contents/">MacVim使用SpaceVim后中文乱码</a>
+          </li>
+        
+          <li>
+            <a href="/2018/12/01/secure-data-transmission-plan/">相对安全的网络传输方案</a>
+          </li>
+        
+          <li>
+            <a href="/2018/10/21/java-file-lock-on-linux/">在Linux下正确的使用Java锁</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2021 Liu Xin Si<br>
+      Powered by <a href="http://hexo.io/" rel='external nofollow' target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'liuxinsi';
+  
+  var disqus_url = 'https://codeandcoffee.cn/2017/05/21/auth-tech-4-apis/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

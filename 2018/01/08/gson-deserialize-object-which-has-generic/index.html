@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  
+  <title>Gson反序列化包含泛型的对象 | Code And Coffee</title>
+  <meta name="keywords" content="java,反射,google,gson,reflect,undefined">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="最近在重构一个遗留项目，项目中关于Json序列化/反序列化操作几乎都是显示的手动序列化，代码散落在各个方法中，丝毫没有利用框架的自动序列化机制。重构的第一步是去除冗余和提炼共通方法。所以将序列化与反序列提取出来。但提取反序列化带泛型的对象出了问题。由于泛型在编译时会被擦除的特性，一般情况下要反序列化包含泛型的对象时需要用到Gson的TypeToken用于返回泛型类。举例： Response1234">
+<meta name="keywords" content="java,反射,google,gson,reflect">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Gson反序列化包含泛型的对象">
+<meta property="og:url" content="https://codeandcoffee.cn/2018/01/08/gson-deserialize-object-which-has-generic/index.html">
+<meta property="og:site_name" content="Code And Coffee">
+<meta property="og:description" content="最近在重构一个遗留项目，项目中关于Json序列化/反序列化操作几乎都是显示的手动序列化，代码散落在各个方法中，丝毫没有利用框架的自动序列化机制。重构的第一步是去除冗余和提炼共通方法。所以将序列化与反序列提取出来。但提取反序列化带泛型的对象出了问题。由于泛型在编译时会被擦除的特性，一般情况下要反序列化包含泛型的对象时需要用到Gson的TypeToken用于返回泛型类。举例： Response1234">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-02-09T03:00:36.338Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Gson反序列化包含泛型的对象">
+<meta name="twitter:description" content="最近在重构一个遗留项目，项目中关于Json序列化/反序列化操作几乎都是显示的手动序列化，代码散落在各个方法中，丝毫没有利用框架的自动序列化机制。重构的第一步是去除冗余和提炼共通方法。所以将序列化与反序列提取出来。但提取反序列化带泛型的对象出了问题。由于泛型在编译时会被擦除的特性，一般情况下要反序列化包含泛型的对象时需要用到Gson的TypeToken用于返回泛型类。举例： Response1234">
+  
+  
+  
+    <link rel="icon" href="https://codeandcoffee.cn/icon.png">
+  
+  
+    <link href="https://codeandcoffee.cn/css.css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Code And Coffee</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">little thing stoppin</a><br/><br/>
+          <a href="https://github.com/liuxinsi" target="_blank"><image src="https://codeandcoffee.cn/fluidicon.png" width="2%" height="2%"/></a>&nbsp;
+          <a href="https://codeandcoffee.cn/resume.html" target="_blank"><image src="https://codeandcoffee.cn/handshake.png"  width="2%" height="2%"/></a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://codeandcoffee.cn"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-gson-deserialize-object-which-has-generic" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/01/08/gson-deserialize-object-which-has-generic/" class="article-date">
+  <time datetime="2018-01-08T08:44:15.000Z" itemprop="datePublished">2018-01-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Java/">Java</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Gson反序列化包含泛型的对象
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近在重构一个遗留项目，项目中关于Json序列化/反序列化操作几乎都是显示的手动序列化，代码散落在各个方法中，丝毫没有利用框架的自动序列化机制。<br>重构的第一步是去除冗余和提炼共通方法。所以将序列化与反序列提取出来。<br>但提取反序列化带泛型的对象出了问题。<br>由于泛型在编译时会被擦除的特性，一般情况下要反序列化包含泛型的对象时需要用到Gson的<b>TypeToken</b>用于返回泛型类。举例：</p>
+<figure class="highlight plain"><figcaption><span>Response</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * 响应对象。&lt;br/&gt;</span><br><span class="line"> * &#123;@link #errMesg&#125;和&#123;@link #errDetail&#125;仅在状态&#123;@link #status&#125;为&#123;@link Status#ERROR&#125;时出现。</span><br><span class="line"> *</span><br><span class="line"> * @author liuxinsi</span><br><span class="line"> * @mail akalxs@gmail.com</span><br><span class="line"> */</span><br><span class="line">@Data</span><br><span class="line">public class Response&lt;T&gt; &#123;</span><br><span class="line">    /**</span><br><span class="line">     * 业务数据</span><br><span class="line">     */</span><br><span class="line">    private T data;</span><br><span class="line">    /**</span><br><span class="line">     * 响应状态</span><br><span class="line">     */</span><br><span class="line">    private Status status;</span><br><span class="line">    /**</span><br><span class="line">     * 错误消息</span><br><span class="line">     */</span><br><span class="line">    private String errMesg;</span><br><span class="line">    /**</span><br><span class="line">     * 错误堆栈</span><br><span class="line">     */</span><br><span class="line">    private String errDetail;</span><br><span class="line"></span><br><span class="line">    public enum Status &#123;</span><br><span class="line">        SUCCESS, ERROR;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><figcaption><span>ValidateTokenResponse</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * 对应&#123;@link com.lxs.mms.auth.resource.AuthenticationResource#validateToken(ValidateTokenRequest)&#125; 响应。</span><br><span class="line"> *</span><br><span class="line"> * @author liuxinsi</span><br><span class="line"> * @mail akalxs@gmail.com</span><br><span class="line"> */</span><br><span class="line">@Data</span><br><span class="line">@ApiModel(value = &quot;验证Token响应&quot;)</span><br><span class="line">public class ValidateTokenResponse &#123;</span><br><span class="line">    @ApiModelProperty(value = &quot;Token是否合法,true合法，false非法。&quot;)</span><br><span class="line">    private Boolean legally;</span><br><span class="line">    @ApiModelProperty(value = &quot;Token中的Audience属性&quot;)</span><br><span class="line">    private String audience;</span><br><span class="line">    @ApiModelProperty(value = &quot;描述&quot;)</span><br><span class="line">    private String desc;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>包装类Response用于抽象共通的响应，其中data是各个业务的对象，所以是个泛型。<br>ValidateTokenResponse，具体的业务响应。封装时候将对象Set到Response后进行序列化。</p>
+<p>反序列化时由于泛型被擦，如果直接用<b>fromJson</b>方法则data的类型不会是期望的业务类，而是List&lt;LinkedHashMap&gt;。<br>所以Gson提供了TypeToken用于处理这个问题：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Gson gson = new Gson();</span><br><span class="line">Type jsonType = new TypeToken&lt;Response&lt;ValidateTokenResponse&gt;&gt;() &#123;</span><br><span class="line">&#125;.getType();</span><br><span class="line">Response&lt;ValidateTokenResponse&gt; r=gson.fromJson(json, jsonType);</span><br></pre></td></tr></table></figure></p>
+<p>由于TypeToken的构造是protected的，所以需要new一个匿名子类(anonymous subclass)，在构造的时候TypeToken会根据你显示传入的泛型获取泛型类并作为ParameterizedType返回。这样在fromJson的时候就可以知道具体的泛型类，然后反序列化时就可以得到正确的data类型。</p>
+<p>所以在提取这种代码时候进行的封装则按常理应该是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; Response&lt;T&gt; unwrap(String json) &#123;</span><br><span class="line">        Gson gson = new Gson();</span><br><span class="line">        Type jsonType = new TypeToken&lt;Response&lt;T&gt;&gt;() &#123;</span><br><span class="line">        &#125;.getType();</span><br><span class="line">        return gson.fromJson(json, jsonType);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>看起来毫无破绽，编译运行都没有问题，但就是data属性还是List<linkedhashmap>。<br>因为上面的T是一个类型参数(java.lang.reflect.TypeVariable)并不是具体的业务类。所以TypeToken没法取得期待的泛型类。<br>根据TypeToken的源码来看它在获取泛型类的时候实际上返回了一个<b>ParameterizedType</b>用于代表泛型类。<br>所以按照思路只要实现这个接口然后告诉它正确的泛型类就可以了。</linkedhashmap></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; Response&lt;T&gt; unwrap(String json, Class&lt;?&gt; clazz) &#123;</span><br><span class="line">       return gson.fromJson(json, new ParameterizedType() &#123;</span><br><span class="line">           /**</span><br><span class="line">           * 原始类型实际的泛型类，与外部传入&lt;code&gt;clazz&lt;/code&gt;显示指明。</span><br><span class="line">           */</span><br><span class="line">           @Override</span><br><span class="line">           public Type[] getActualTypeArguments() &#123;</span><br><span class="line">               return new Class[]&#123;clazz&#125;;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           /**</span><br><span class="line">           * 原始类型。</span><br><span class="line">           */</span><br><span class="line">           @Override</span><br><span class="line">           public Type getRawType() &#123;</span><br><span class="line">               return Response.class;</span><br><span class="line">           &#125;</span><br><span class="line">           </span><br><span class="line">           /**</span><br><span class="line">           * 如果是内部类需要指明所属的对象，如果不是返回null。</span><br><span class="line">           */</span><br><span class="line">           @Override</span><br><span class="line">           public Type getOwnerType() &#123;</span><br><span class="line">               return null;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;);</span><br><span class="line"></span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<p>调用时：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Response&lt;ValidateTokenResponse&gt; r = ResponseUnwrap.unwrap(json,ValidateTokenResponse.class);</span><br></pre></td></tr></table></figure></p>
+<p>就可以正确的处理反序列化。<br>其实还可以封装的更灵活点，比如处理多个泛型需要修改传参和getActualTypeArguments方法的返回，如果是传集合类型还要单独处理下，不应该写死RawType。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/01/08/gson-deserialize-object-which-has-generic/" data-id="ckpl281ss000cv6sewghx8z50" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/01/08/gson-deserialize-object-which-has-generic/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Gson/">Gson</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2018/03/12/spark-could-not-initialize-class-main/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Spark踩坑1—无法初始化Main
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2017/11/02/mongodb-orm-morphia-cache-issue/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">MongoDB ORM框架Morphia缓存小坑</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = https://codeandcoffee.cn/2018/01/08/gson-deserialize-object-which-has-generic/;
+  this.page.identifier = https://codeandcoffee.cn/2018/01/08/gson-deserialize-object-which-has-generic/; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/MongoDB/">MongoDB</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spark/">Spark</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/业务/">业务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Bug/">Bug</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cheetsheet/">Cheetsheet</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/">Docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPClient/">FTPClient</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPServer/">FTPServer</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FileLock/">FileLock</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gson/">Gson</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jersey/">Jersey</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/KONG/">KONG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kryo/">Kryo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/">Linux</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MongoDB/">MongoDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Morphia/">Morphia</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NFS/">NFS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nacos/">Nacos</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/">Nginx</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenSSH/">OpenSSH</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SOCKET/">SOCKET</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spark/">Spark</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring-Boot/">Spring-Boot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swagger/">Swagger</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/TCP/">TCP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tomcat/">Tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ramfs/">ramfs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/业务/">业务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/优化/">优化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全传输/">安全传输</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/微服务/">微服务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/设计/">设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Ansible/" style="font-size: 10px;">Ansible</a> <a href="/tags/Bug/" style="font-size: 10px;">Bug</a> <a href="/tags/Cheetsheet/" style="font-size: 10px;">Cheetsheet</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/FTPClient/" style="font-size: 10px;">FTPClient</a> <a href="/tags/FTPServer/" style="font-size: 10px;">FTPServer</a> <a href="/tags/FileLock/" style="font-size: 10px;">FileLock</a> <a href="/tags/Gson/" style="font-size: 10px;">Gson</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Jersey/" style="font-size: 12.5px;">Jersey</a> <a href="/tags/KONG/" style="font-size: 10px;">KONG</a> <a href="/tags/Kryo/" style="font-size: 10px;">Kryo</a> <a href="/tags/Linux/" style="font-size: 20px;">Linux</a> <a href="/tags/Microservices/" style="font-size: 15px;">Microservices</a> <a href="/tags/MongoDB/" style="font-size: 17.5px;">MongoDB</a> <a href="/tags/Morphia/" style="font-size: 12.5px;">Morphia</a> <a href="/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/tags/Nacos/" style="font-size: 10px;">Nacos</a> <a href="/tags/Nginx/" style="font-size: 10px;">Nginx</a> <a href="/tags/OpenSSH/" style="font-size: 10px;">OpenSSH</a> <a href="/tags/RESTful-Api/" style="font-size: 17.5px;">RESTful Api</a> <a href="/tags/SOCKET/" style="font-size: 10px;">SOCKET</a> <a href="/tags/Spark/" style="font-size: 15px;">Spark</a> <a href="/tags/Spring-Boot/" style="font-size: 10px;">Spring-Boot</a> <a href="/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/tags/TCP/" style="font-size: 10px;">TCP</a> <a href="/tags/Tomcat/" style="font-size: 10px;">Tomcat</a> <a href="/tags/ramfs/" style="font-size: 10px;">ramfs</a> <a href="/tags/业务/" style="font-size: 10px;">业务</a> <a href="/tags/优化/" style="font-size: 10px;">优化</a> <a href="/tags/安全传输/" style="font-size: 10px;">安全传输</a> <a href="/tags/安全认证技术/" style="font-size: 12.5px;">安全认证技术</a> <a href="/tags/微服务/" style="font-size: 12.5px;">微服务</a> <a href="/tags/设计/" style="font-size: 10px;">设计</a> <a href="/tags/踩坑/" style="font-size: 20px;">踩坑</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">七月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/10/">十月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/07/07/nacos-ephemeral/">Nacos临时节点和永久节点的本质意义</a>
+          </li>
+        
+          <li>
+            <a href="/2019/03/11/design-for-abnormal-payment/">奇葩的异常支付场景</a>
+          </li>
+        
+          <li>
+            <a href="/2019/01/21/macvim-spacevim-characters-illegible-contents/">MacVim使用SpaceVim后中文乱码</a>
+          </li>
+        
+          <li>
+            <a href="/2018/12/01/secure-data-transmission-plan/">相对安全的网络传输方案</a>
+          </li>
+        
+          <li>
+            <a href="/2018/10/21/java-file-lock-on-linux/">在Linux下正确的使用Java锁</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2021 Liu Xin Si<br>
+      Powered by <a href="http://hexo.io/" rel='external nofollow' target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'liuxinsi';
+  
+  var disqus_url = 'https://codeandcoffee.cn/2018/01/08/gson-deserialize-object-which-has-generic/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  
+  <title>Jersey开启Gzip踩的坑 | Code And Coffee|优化TPC减少TIME_WAIT</title>
+  <meta name="keywords" content="Jersey,restful api,gzip,优化TPC减少TIME_WAIT">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="优化TPC减少TIME_WAIT">
+<meta name="keywords" content="Jersey,restful api,gzip">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Jersey开启Gzip踩的坑">
+<meta property="og:url" content="https://codeandcoffee.cn/2017/05/12/jersey-gzipencoder/index.html">
+<meta property="og:site_name" content="Code And Coffee">
+<meta property="og:description" content="优化TPC减少TIME_WAIT">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-02-09T03:00:36.337Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Jersey开启Gzip踩的坑">
+<meta name="twitter:description" content="优化TPC减少TIME_WAIT">
+  
+  
+  
+    <link rel="icon" href="https://codeandcoffee.cn/icon.png">
+  
+  
+    <link href="https://codeandcoffee.cn/css.css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Code And Coffee</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">little thing stoppin</a><br/><br/>
+          <a href="https://github.com/liuxinsi" target="_blank"><image src="https://codeandcoffee.cn/fluidicon.png" width="2%" height="2%"/></a>&nbsp;
+          <a href="https://codeandcoffee.cn/resume.html" target="_blank"><image src="https://codeandcoffee.cn/handshake.png"  width="2%" height="2%"/></a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://codeandcoffee.cn"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-jersey-gzipencoder" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/05/12/jersey-gzipencoder/" class="article-date">
+  <time datetime="2017-05-12T02:08:36.000Z" itemprop="datePublished">2017-05-12</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/微服务/">微服务</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Jersey开启Gzip踩的坑
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近给一个基于Jerysey的Restful项目增加gzip功能，通过自动代码提示发现Jersey自带了一个GZipEncoder，通过注释看，只要头CONTENT_ENCODING为gzip或x-gzip就可以进行压缩和解压。<br>于是在ResourceConfig里直接注册了GzipEncoder。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">register(GzipEncoder.class);</span><br></pre></td></tr></table></figure>
+<p>但在测试的时候发现，请求压缩后decode没问题，但返回的响应则无法encode，也就是无法压缩，一开始以为是ACCEPT_ENCODING问题，但设置了也不对，最后debug发现根本进不去GzipEncoder#encode方法。<br>测试代码：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line">CloseableHttpClient client = HttpClients.createDefault();</span><br><span class="line">StringEntity entity = new StringEntity(&quot;&#123;\&quot;id\&quot;:\&quot;123\&quot;&#125;&quot;, ContentType.create(</span><br><span class="line">        ContentType.APPLICATION_JSON.getMimeType(), &quot;UTF-8&quot;));</span><br><span class="line">entity.setContentEncoding(&quot;UTF-8&quot;);</span><br><span class="line">GzipCompressingEntity gc=new GzipCompressingEntity(entity);</span><br><span class="line"></span><br><span class="line">String out = null;</span><br><span class="line">try &#123;</span><br><span class="line">    // send</span><br><span class="line">    HttpPost post = new HttpPost(&quot;http://127.0.0.1:8080/services/test/v1/x&quot;);</span><br><span class="line">    try &#123;</span><br><span class="line">        post.addHeader(&quot;Accept-Encoding&quot;,&quot;gzip&quot;);</span><br><span class="line">        post.setEntity(gc);</span><br><span class="line">        CloseableHttpResponse response = null;</span><br><span class="line">        try &#123;</span><br><span class="line">            response = client.execute(post);</span><br><span class="line">            int code = response.getStatusLine().getStatusCode();</span><br><span class="line">            if (code != HttpStatus.SC_OK) &#123;</span><br><span class="line">                throw new BizSystemException(&quot;发送请求失败，返回的状态码：&quot; + code);</span><br><span class="line">            &#125;</span><br><span class="line">            HttpEntity respEntity = response.getEntity();</span><br><span class="line"></span><br><span class="line">            // consume</span><br><span class="line">            out = EntityUtils.toString(respEntity, &quot;UTF-8&quot;);</span><br><span class="line">            EntityUtils.consume(respEntity);</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">            log.error(&quot;发送请求异常&quot;, e);</span><br><span class="line">            throw new BizSystemException(&quot;发送请求失败&quot;, e);</span><br><span class="line">        &#125; finally &#123;</span><br><span class="line">            IOUtils.closeQuietly(response);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">        post.releaseConnection();</span><br><span class="line">    &#125;</span><br><span class="line">&#125; finally &#123;</span><br><span class="line">    IOUtils.closeQuietly(client);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>最后google了一下发现启用GzipEncoder压缩响应属于entity-filtering，需要开启entity-filtering，于是引入类库：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.glassfish.jersey.ext&lt;/groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;jersey-entity-filtering&lt;/artifactId&gt;</span><br><span class="line">    &lt;version&gt;2.21&lt;/version&gt;</span><br><span class="line">&lt;/dependency&gt;</span><br></pre></td></tr></table></figure></p>
+<p>并且开启entity-filtering功能，以及激活gzipencoder：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">register(EntityFilteringFeature.class);</span><br><span class="line">EncodingFilter.enableFor(this, GZipEncoder.class);</span><br></pre></td></tr></table></figure></p>
+<p>通过日志看已经可以正确处理请求和响应的压缩。<br>使用时还需要注意的时GZipEncoder的优先级为：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">@Priority(Priorities.ENTITY_CODER)</span><br><span class="line">public class GZipEncoder extends ContentEncoder&#123;</span><br><span class="line">...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>也就是4000，如果有自定义的过滤器/拦截器需要注意下顺序。</p>
+<p>比较坑的是看源码GZIPEncoder仅仅是一个拦截器，按照以往的经验注册一下调整下顺序就应该是开箱即用的，为毛会和Entity-Filtering扯上关系，还要多引一个依赖，根据官网Entity-Filtering的介绍来看：</p>
+<blockquote>
+<p>Support for Entity Filtering in Jersey introduces a convenient facility for reducing the amount of data exchanged over the wire between client and server without a need to create specialized data view components. The main idea behind this feature is to give you APIs that will let you to selectively filter out any non-relevant data from the marshalled object model before sending the data to the other party based on the context of the particular message exchange. This way, only the necessary or relevant portion of the data is transferred over the network with each client request or server response, without a need to create special facade models for transferring these limited subsets of the model data.</p>
+</blockquote>
+<p>Entity-Filtering功能最大的作用就是减少传输间的显示组件(view components)，也就是说往往在客户端与服务器端的数据交换都需要定义很多JavaBean用来序列化请求/响应，哪怕有很多无关的数据需要组合到一起都要定义一个根的JavaBean用于组合它们(Facade模式)。</p>
+<p>Entity-Filtering可以在传输的时候对数据进行处理，避免创建这些Facade对象。</p>
+<p>所以究竟为啥一个拦截器的工作需要和Entity-Filtering有关联呢。😂</p>
+<h2 id="参考："><a href="#参考：" class="headerlink" title="参考："></a>参考：</h2><p>1.<a href="http://www.codingpedia.org/ama/how-to-compress-responses-in-java-rest-api-with-gzip-and-jersey/" target="_blank" rel="noopener">how-to-compress-responses-in-java-rest-api-with-gzip-and-jersey</a></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2017/05/12/jersey-gzipencoder/" data-id="ckpl281sq000bv6see8sf0o06" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2017/05/12/jersey-gzipencoder/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Jersey/">Jersey</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2017/05/21/auth-tech-4-apis/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          API安全认证技术(翻译)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2017/05/07/tcp-optimize/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">TCP优化--减少TIME_WAIT提高吞吐</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = https://codeandcoffee.cn/2017/05/12/jersey-gzipencoder/;
+  this.page.identifier = https://codeandcoffee.cn/2017/05/12/jersey-gzipencoder/; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/MongoDB/">MongoDB</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spark/">Spark</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/业务/">业务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Bug/">Bug</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cheetsheet/">Cheetsheet</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/">Docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPClient/">FTPClient</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPServer/">FTPServer</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FileLock/">FileLock</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gson/">Gson</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jersey/">Jersey</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/KONG/">KONG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kryo/">Kryo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/">Linux</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MongoDB/">MongoDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Morphia/">Morphia</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NFS/">NFS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nacos/">Nacos</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/">Nginx</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenSSH/">OpenSSH</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SOCKET/">SOCKET</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spark/">Spark</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring-Boot/">Spring-Boot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swagger/">Swagger</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/TCP/">TCP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tomcat/">Tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ramfs/">ramfs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/业务/">业务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/优化/">优化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全传输/">安全传输</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/微服务/">微服务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/设计/">设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Ansible/" style="font-size: 10px;">Ansible</a> <a href="/tags/Bug/" style="font-size: 10px;">Bug</a> <a href="/tags/Cheetsheet/" style="font-size: 10px;">Cheetsheet</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/FTPClient/" style="font-size: 10px;">FTPClient</a> <a href="/tags/FTPServer/" style="font-size: 10px;">FTPServer</a> <a href="/tags/FileLock/" style="font-size: 10px;">FileLock</a> <a href="/tags/Gson/" style="font-size: 10px;">Gson</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Jersey/" style="font-size: 12.5px;">Jersey</a> <a href="/tags/KONG/" style="font-size: 10px;">KONG</a> <a href="/tags/Kryo/" style="font-size: 10px;">Kryo</a> <a href="/tags/Linux/" style="font-size: 20px;">Linux</a> <a href="/tags/Microservices/" style="font-size: 15px;">Microservices</a> <a href="/tags/MongoDB/" style="font-size: 17.5px;">MongoDB</a> <a href="/tags/Morphia/" style="font-size: 12.5px;">Morphia</a> <a href="/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/tags/Nacos/" style="font-size: 10px;">Nacos</a> <a href="/tags/Nginx/" style="font-size: 10px;">Nginx</a> <a href="/tags/OpenSSH/" style="font-size: 10px;">OpenSSH</a> <a href="/tags/RESTful-Api/" style="font-size: 17.5px;">RESTful Api</a> <a href="/tags/SOCKET/" style="font-size: 10px;">SOCKET</a> <a href="/tags/Spark/" style="font-size: 15px;">Spark</a> <a href="/tags/Spring-Boot/" style="font-size: 10px;">Spring-Boot</a> <a href="/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/tags/TCP/" style="font-size: 10px;">TCP</a> <a href="/tags/Tomcat/" style="font-size: 10px;">Tomcat</a> <a href="/tags/ramfs/" style="font-size: 10px;">ramfs</a> <a href="/tags/业务/" style="font-size: 10px;">业务</a> <a href="/tags/优化/" style="font-size: 10px;">优化</a> <a href="/tags/安全传输/" style="font-size: 10px;">安全传输</a> <a href="/tags/安全认证技术/" style="font-size: 12.5px;">安全认证技术</a> <a href="/tags/微服务/" style="font-size: 12.5px;">微服务</a> <a href="/tags/设计/" style="font-size: 10px;">设计</a> <a href="/tags/踩坑/" style="font-size: 20px;">踩坑</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">七月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/10/">十月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/07/07/nacos-ephemeral/">Nacos临时节点和永久节点的本质意义</a>
+          </li>
+        
+          <li>
+            <a href="/2019/03/11/design-for-abnormal-payment/">奇葩的异常支付场景</a>
+          </li>
+        
+          <li>
+            <a href="/2019/01/21/macvim-spacevim-characters-illegible-contents/">MacVim使用SpaceVim后中文乱码</a>
+          </li>
+        
+          <li>
+            <a href="/2018/12/01/secure-data-transmission-plan/">相对安全的网络传输方案</a>
+          </li>
+        
+          <li>
+            <a href="/2018/10/21/java-file-lock-on-linux/">在Linux下正确的使用Java锁</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2021 Liu Xin Si<br>
+      Powered by <a href="http://hexo.io/" rel='external nofollow' target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'liuxinsi';
+  
+  var disqus_url = 'https://codeandcoffee.cn/2017/05/12/jersey-gzipencoder/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

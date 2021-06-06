@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  
+  <title>MongoDB TTL索引不起作用 | Code And Coffee|MongoDB TTL 所以不起作用，无法删除</title>
+  <meta name="keywords" content="MongoDB,MongoDB TTL 所以不起作用，无法删除">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="MongoDB TTL 所以不起作用，无法删除">
+<meta name="keywords" content="MongoDB">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MongoDB TTL索引不起作用">
+<meta property="og:url" content="https://codeandcoffee.cn/2017/03/17/mongodb-ttl-not-working/index.html">
+<meta property="og:site_name" content="Code And Coffee">
+<meta property="og:description" content="MongoDB TTL 所以不起作用，无法删除">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-02-09T03:00:36.339Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MongoDB TTL索引不起作用">
+<meta name="twitter:description" content="MongoDB TTL 所以不起作用，无法删除">
+  
+  
+  
+    <link rel="icon" href="https://codeandcoffee.cn/icon.png">
+  
+  
+    <link href="https://codeandcoffee.cn/css.css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Code And Coffee</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">little thing stoppin</a><br/><br/>
+          <a href="https://github.com/liuxinsi" target="_blank"><image src="https://codeandcoffee.cn/fluidicon.png" width="2%" height="2%"/></a>&nbsp;
+          <a href="https://codeandcoffee.cn/resume.html" target="_blank"><image src="https://codeandcoffee.cn/handshake.png"  width="2%" height="2%"/></a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://codeandcoffee.cn"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-mongodb-ttl-not-working" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/03/17/mongodb-ttl-not-working/" class="article-date">
+  <time datetime="2017-03-17T13:21:52.000Z" itemprop="datePublished">2017-03-17</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/MongoDB/">MongoDB</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      MongoDB TTL索引不起作用
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近在开发一个基于MongoDB的分布式锁功能，其中需要利用TTL索引解决锁释放问题，结果索引是建成了，但就是无法删除超时的文档。<br>翻来覆去用过各种客户端工具重建索引，调整保存数据和建立索引顺序，查看serverStatus等，就是无法触发超时删除功能。<br>把stackoverflow相同问题的答案都过了一遍，就是不行。<br>最后突然想到像这种互联网型的数据库，日志还是比较靠谱，为毛不先看看日志，于是登服务器看日志，打头一段就是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Fri Mar 17 14:34:05.152 I FTDC     [initandlisten] Initializing full-time diagnostic data capture with directory &apos;/root/deploy/mongodb/db/diagnostic.data&apos;</span><br><span class="line">Fri Mar 17 14:34:05.152 I STORAGE  [initandlisten]</span><br><span class="line">Fri Mar 17 14:34:05.152 I STORAGE  [initandlisten] ** WARNING: mongod started without --replSet yet 1 documents are present in local.system.replset</span><br><span class="line">Fri Mar 17 14:34:05.152 I STORAGE  [initandlisten] **          Restart with --replSet unless you are doing maintenance and  no other clients are connected.</span><br><span class="line">Fri Mar 17 14:34:05.152 I STORAGE  [initandlisten] **          The TTL collection monitor will not start because of this.</span><br><span class="line">Fri Mar 17 14:34:05.152 I STORAGE  [initandlisten] **</span><br><span class="line">Fri Mar 17 14:34:05.152 I STORAGE  [initandlisten]  For more info see http://dochub.mongodb.org/core/ttlcollections</span><br></pre></td></tr></table></figure></p>
+<p>wtf，为了图省事用的一个以前的库，结果这个库曾经做过某个复制集中的一员，后来复制集取消了，但复制集相关的信息还在，所以TTL Monitor根本不会启动，估计也是为了数据完整性。<br>最后清空system.replset集合中的相关数据，TTL正常。✌️</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2017/03/17/mongodb-ttl-not-working/" data-id="ckpl281t40019v6sedy6yz8wn" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2017/03/17/mongodb-ttl-not-working/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MongoDB/">MongoDB</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2017/03/30/api-gateway-kong/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          可靠的Api网关--KONG(序)
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2017/03/05/fix-no-matching-host-key-type-found/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">修复SSH &quot;no matching host key type found&quot; 错误</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = https://codeandcoffee.cn/2017/03/17/mongodb-ttl-not-working/;
+  this.page.identifier = https://codeandcoffee.cn/2017/03/17/mongodb-ttl-not-working/; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/MongoDB/">MongoDB</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spark/">Spark</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/业务/">业务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Bug/">Bug</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cheetsheet/">Cheetsheet</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/">Docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPClient/">FTPClient</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPServer/">FTPServer</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FileLock/">FileLock</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gson/">Gson</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jersey/">Jersey</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/KONG/">KONG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kryo/">Kryo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/">Linux</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MongoDB/">MongoDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Morphia/">Morphia</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NFS/">NFS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nacos/">Nacos</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/">Nginx</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenSSH/">OpenSSH</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SOCKET/">SOCKET</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spark/">Spark</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring-Boot/">Spring-Boot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swagger/">Swagger</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/TCP/">TCP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tomcat/">Tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ramfs/">ramfs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/业务/">业务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/优化/">优化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全传输/">安全传输</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/微服务/">微服务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/设计/">设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Ansible/" style="font-size: 10px;">Ansible</a> <a href="/tags/Bug/" style="font-size: 10px;">Bug</a> <a href="/tags/Cheetsheet/" style="font-size: 10px;">Cheetsheet</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/FTPClient/" style="font-size: 10px;">FTPClient</a> <a href="/tags/FTPServer/" style="font-size: 10px;">FTPServer</a> <a href="/tags/FileLock/" style="font-size: 10px;">FileLock</a> <a href="/tags/Gson/" style="font-size: 10px;">Gson</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Jersey/" style="font-size: 12.5px;">Jersey</a> <a href="/tags/KONG/" style="font-size: 10px;">KONG</a> <a href="/tags/Kryo/" style="font-size: 10px;">Kryo</a> <a href="/tags/Linux/" style="font-size: 20px;">Linux</a> <a href="/tags/Microservices/" style="font-size: 15px;">Microservices</a> <a href="/tags/MongoDB/" style="font-size: 17.5px;">MongoDB</a> <a href="/tags/Morphia/" style="font-size: 12.5px;">Morphia</a> <a href="/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/tags/Nacos/" style="font-size: 10px;">Nacos</a> <a href="/tags/Nginx/" style="font-size: 10px;">Nginx</a> <a href="/tags/OpenSSH/" style="font-size: 10px;">OpenSSH</a> <a href="/tags/RESTful-Api/" style="font-size: 17.5px;">RESTful Api</a> <a href="/tags/SOCKET/" style="font-size: 10px;">SOCKET</a> <a href="/tags/Spark/" style="font-size: 15px;">Spark</a> <a href="/tags/Spring-Boot/" style="font-size: 10px;">Spring-Boot</a> <a href="/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/tags/TCP/" style="font-size: 10px;">TCP</a> <a href="/tags/Tomcat/" style="font-size: 10px;">Tomcat</a> <a href="/tags/ramfs/" style="font-size: 10px;">ramfs</a> <a href="/tags/业务/" style="font-size: 10px;">业务</a> <a href="/tags/优化/" style="font-size: 10px;">优化</a> <a href="/tags/安全传输/" style="font-size: 10px;">安全传输</a> <a href="/tags/安全认证技术/" style="font-size: 12.5px;">安全认证技术</a> <a href="/tags/微服务/" style="font-size: 12.5px;">微服务</a> <a href="/tags/设计/" style="font-size: 10px;">设计</a> <a href="/tags/踩坑/" style="font-size: 20px;">踩坑</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">七月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/10/">十月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/07/07/nacos-ephemeral/">Nacos临时节点和永久节点的本质意义</a>
+          </li>
+        
+          <li>
+            <a href="/2019/03/11/design-for-abnormal-payment/">奇葩的异常支付场景</a>
+          </li>
+        
+          <li>
+            <a href="/2019/01/21/macvim-spacevim-characters-illegible-contents/">MacVim使用SpaceVim后中文乱码</a>
+          </li>
+        
+          <li>
+            <a href="/2018/12/01/secure-data-transmission-plan/">相对安全的网络传输方案</a>
+          </li>
+        
+          <li>
+            <a href="/2018/10/21/java-file-lock-on-linux/">在Linux下正确的使用Java锁</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2021 Liu Xin Si<br>
+      Powered by <a href="http://hexo.io/" rel='external nofollow' target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'liuxinsi';
+  
+  var disqus_url = 'https://codeandcoffee.cn/2017/03/17/mongodb-ttl-not-working/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

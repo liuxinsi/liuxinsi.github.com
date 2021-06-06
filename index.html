@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  
+  <title>Code And Coffee</title>
+  <meta name="keywords" content="undefined,undefined">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="java | 后端 | 经验 | blog">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Code And Coffee">
+<meta property="og:url" content="https://codeandcoffee.cn/index.html">
+<meta property="og:site_name" content="Code And Coffee">
+<meta property="og:description" content="java | 后端 | 经验 | blog">
+<meta property="og:locale" content="zh-CN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Code And Coffee">
+<meta name="twitter:description" content="java | 后端 | 经验 | blog">
+  
+  
+  
+    <link rel="icon" href="https://codeandcoffee.cn/icon.png">
+  
+  
+    <link href="https://codeandcoffee.cn/css.css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Code And Coffee</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">little thing stoppin</a><br/><br/>
+          <a href="https://github.com/liuxinsi" target="_blank"><image src="https://codeandcoffee.cn/fluidicon.png" width="2%" height="2%"/></a>&nbsp;
+          <a href="https://codeandcoffee.cn/resume.html" target="_blank"><image src="https://codeandcoffee.cn/handshake.png"  width="2%" height="2%"/></a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://codeandcoffee.cn"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main">
+  
+    <article id="post-nacos-ephemeral" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2019/07/07/nacos-ephemeral/" class="article-date">
+  <time datetime="2019-07-07T11:12:13.000Z" itemprop="datePublished">2019-07-07</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/微服务/">微服务</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2019/07/07/nacos-ephemeral/">Nacos临时节点和永久节点的本质意义</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>Nacos 1.0.0 版本在客户端侧增加了一个ephemeral配置，默认值是True，代表当前实例是临时实例还是永久实例。<br>官方对此的描述是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">如果是临时实例，则不会在Nacos服务端持久化存储，需要通过上报心跳的方式进行保活，如果一段时间内没有上报心跳，则会被Nacos服务端摘除。</span><br><span class="line">在被摘除后如果又开始上报心跳，则会重新将这个实例注册。</span><br><span class="line">持久化实例则会持久化到Nacos服务端，此时即使注册实例的客户端进程不在，这个实例也不会从服务端删除，只会将健康状态设为不健康。</span><br><span class="line">同一个服务下可以同时有临时实例和持久化实例，这意味着当这服务的所有实例进程不在时，会有部分实例从服务上摘除，剩下的实例则会保留在服务下</span><br></pre></td></tr></table></figure></p>
+<p>那具体又是什么意义呢，正常一个实例挂了就应该从注册中心上拿掉，所以是临时实例就行了。<br>其实不然，因为现实项目中，一个项目有个十几、二十几服务很正常，假设其中挂了一个，挂的这一个在注册中心控制台上就会消失，一般运维或者开发很难确定哪个服务没了，只能顺着调用链路排查。<br>如果ephemeral改为false，那如果服务挂了，不会消失，控制台上会显示不健康，一眼就能定位到有问题的服务。<br><strong>所以生产环境建议修改ephemeral的配置为false。</strong></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2019/07/07/nacos-ephemeral/" data-id="ckpl281t9001ov6sefkcszee1" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2019/07/07/nacos-ephemeral/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Nacos/">Nacos</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/微服务/">微服务</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-design-for-abnormal-payment" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2019/03/11/design-for-abnormal-payment/" class="article-date">
+  <time datetime="2019-03-11T03:17:53.000Z" itemprop="datePublished">2019-03-11</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/业务/">业务</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2019/03/11/design-for-abnormal-payment/">奇葩的异常支付场景</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>现代的订单支付、秒杀等业务，下单库存锁定后都有个倒计时功能，超过指定的阈值会释放掉订单，防止有人恶意锁单。<br>一般而言我的方案是这么做：<br>1.下单后对订单生成一个stub放在redis<br>2.用ttl进行倒计时<br>3.进页面后轮询key是否存在，不存在订单取消，存在则显示倒计时倒计时</p>
+<p>现在有种场景：<br>用户在未超时的情况下点击付款后打开了第三方的app，比如支付宝进行支付，但是支付宝APP停留时间长，此时后台的ttl已经超时，被删除，但由于第三方支付已经打开，接口层面付款仍然是可以成功的。<br>所以这种情况算是下单成功还是失败？<br>再或者由于现在的支付回调大部分都是异步的，假设异步通知时候ttl过期，算成功还是失败？<br>更麻烦的是，假设算支付成功，成功后由于ttl过期，导致库存解锁，商品又被其他的订单锁定。。</p>
+<p>目前想到的解决办法：<br>1.比较好的第三方支付渠道、支付宝、微信在API上都会提供一个最晚支付时间，如果超过这个时间未支付就不能支付了，比如订单超时是30分钟，那把这个时间减少个10秒传给支付宝，支付宝那边会保证这种场景的失败。<br>2.同步查询支付结果或者收到支付成功回调的话，判断一下订单的支付状态，如果已经超时，直接退款，但这种用户体验非常差，用户的账单明细会有两条记录，一条支付成功，一条退款成功。<br>3.看看第三方是否提供关闭订单的接口，ttl超时时先调用第三方的关闭接口，如果调用失败代表用户支付成功，续一下ttl，不要做后续的释放库存操作，如果调用关闭成功在做后续的释放库存业务，由于也是调用第三方和调用网络RPC，其实也没法保证严格的幂等。<br>4.前端拉起支付APP前调一下后台，后台看一下剩余时间，如果很快超时就续一小段时间，等待支付完毕。但有个风险，如果被人发现了这种机制，会一直反复唤起支付APP，长时间锁单。</p>
+<p>没想到特别的好办法，由于支付宝和微信提供了最晚支付时间，所以目前是1和2结合的方案，但银联那边没提供，所以银联用的3。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2019/03/11/design-for-abnormal-payment/" data-id="ckpl281su000gv6sex4ojxg4e" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2019/03/11/design-for-abnormal-payment/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/业务/">业务</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/设计/">设计</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-macvim-spacevim-characters-illegible-contents" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2019/01/21/macvim-spacevim-characters-illegible-contents/" class="article-date">
+  <time datetime="2019-01-21T10:58:47.000Z" itemprop="datePublished">2019-01-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/踩坑/">踩坑</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2019/01/21/macvim-spacevim-characters-illegible-contents/">MacVim使用SpaceVim后中文乱码</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近手贱把MacVim和SpaceVim删了，准备用最新的版本，结果安装完后，打开直接各种问号，中文也是问号方块。<br><img src="/vim1.png" alt><br><img src="/vim2.png" alt></p>
+<p>网上各种搜教程，搜到几乎都是让安装一款Hack字体，然后在iTerm里修改下Non-ASCII Font，然后就解决了，照着做一遍发现没啥用，我iTerm不装这个字体，选个其他支持中文的字体也不乱码，我主要是MacVim乱码，各司其职，终端就不要承受文本编辑的工作了。<br>最终想到，现在的MacVim已经被SpaceVim各种插件托管，还是要设置SpaceVim才能解决，于是找到SpaceVim的配置文件<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">~/.SpaceVim/init.toml</span><br></pre></td></tr></table></figure></p>
+<p>找到option增加：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">guifont= &quot;Hack NF:h11&quot;</span><br></pre></td></tr></table></figure></p>
+<p>就解决了。<br><img src="/vim3.png" alt></p>
+<p>但奇怪的事，设置其他中文字体，比如微软雅黑、宋体等，字体确实变了，但中文仍然是方块乱码，十分不解！</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2019/01/21/macvim-spacevim-characters-illegible-contents/" data-id="ckpl281t0000rv6se2klr66zc" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2019/01/21/macvim-spacevim-characters-illegible-contents/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-secure-data-transmission-plan" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/12/01/secure-data-transmission-plan/" class="article-date">
+  <time datetime="2018-12-01T02:27:57.000Z" itemprop="datePublished">2018-12-01</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/设计/">设计</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/12/01/secure-data-transmission-plan/">相对安全的网络传输方案</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近做一个C端的项目，需要设计一个“相对”安全的传输方案，用于确保数据在传输过程中的安全。<br>首先提到安全传输第一个想到的自然是走HTTPS，复习一下HTTPS为什么安全：</p>
+<p><img src="https://patrick6649.files.wordpress.com/2017/10/unbenannt68.png" alt="https"><br>简单说下，https讲解网上一大堆：<br>1.客户端和服务器建立连接<br>2.服务器发送公钥给客户端<br>3.客户端用公钥加密数据后发给服务器<br>4.服务器用私钥进行数据解密<br>5.其中为了防止公钥被劫持，又引入了CA<br>6.CA是一家被信任的第三个机构，负责发布数字证书来保证公钥不被篡改<br>7.客户端发请求时，服务器把CA给的数字证书给客户端<br>8.客户端通过CA提供的公钥获取数字签名，来确保证书安全</p>
+<p>如果将数据传输分为三大部分：服务器、传输中、落到客户端。那么HTTPS其实只是保护传输中的数据安全而已。<br>也就是在传输过程中第三方抓的包是密文的。<br>那么在服务器和客户端抓的包自然是明文，这就是为什么有些新手测试会说为什么能抓到明文的包，因为他们的测试方法都是在客户端抓包，数据已经落到客户端解密，自然能抓到。<br>服务器抓包不讨论，如果有在服务器抓包的能力那么跟任何的“传输”方案没关系，找运维比较靠谱。<br>客户端抓包很常见，尤其是现在的Android开放程度比较高，或者APP使用PC的代理，然后PC抓包。</p>
+<p>所以需要设计一个针对客户端抓包方案：<br><img src="/TIMELINE.png" alt><br><strong>步骤5和7当时画的不准确，以下面文字描述为准</strong></p>
+<p>总体思路：<br>1.每个APP或者终端，发送请求到负责授权的服务，授权服务根据终端唯一特性，比如IMEI、MAC等特征信息为该终端生成RSA密钥对，然后把公钥返回。<br>2.APP可以将公钥存在内存里<br>3.由于RSA的非对称加解密特性导致在大数据量的情况下加解密都特别的慢，所以这边要引入对称加密AES，简单来说RSA是非对称加密，也就是公钥加密，私钥解密。而对称的AES可以简单理解基于一个密码的加解密，我只要有这个密码就可以加解密，并且速度非常快<br>4.所以APP在传输数据的时候生成一个十六位的密码，使用这个密码和AES对传输的数据进行加密,由于加密后是二进制，所以需要将加密后的值base64 encode一下,然后将该值作为body提交，<strong>密码</strong>使用<strong>公钥</strong>进行加密，一样base64后放在Header里，然后进行请求<br>5.网关发现请求包含加密数据，将请求转发到授权服务进行脱敏<br>6.授权服务从Header里获取<strong>密码</strong>，base64 decode后，使用该APP对应RSA对应的密钥进行解密，获取AES密码明文，然后使用<strong>密码</strong>对Body的数据进行解密，解密后将明文返回给网关<br>7.网关将对应的Body使用明文进行替换，打到下游业务服务，下游业务服务进行业务处理<br>9.业务服务进行业务处理后，将响应返回<br>10.网关将响应和明文密码转发给授权服务，授权服务直接用明文密码对响应进行AES加密，然后返回<br>11.APP拿到响应，使用刚才的AES<strong>密码</strong>对响应进行解密，然后进行页面渲染<br>12.整体流程完毕</p>
+<p>这个流程可以防止在客户端进行抓包，因为传输到落地在协议层面数据都是加密的，只有在客户端内存里才会进行解密渲染。</p>
+<p><strong>但缺点也十分明显，完全依赖同步阻塞的串行模型，现代的网关比如Spring Gateway支持WebFlux 异步，导致请求响应授权服务、下游业务服务的线程不一样。比如网关将请求打到下游业务服务，线程就切换处理其他请求去了，这时业务服务的响应可能被另外的网关线程处理，而解密的明文密码还在上一个线程里，如何在交给授权服务进行加密？所以针对这种情况要额外设计对请求/响应的打点标记，额外增加复杂度</strong></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/12/01/secure-data-transmission-plan/" data-id="ckpl281t5001bv6se3ii6fpwh" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/12/01/secure-data-transmission-plan/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/安全传输/">安全传输</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-java-file-lock-on-linux" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/10/21/java-file-lock-on-linux/" class="article-date">
+  <time datetime="2018-10-21T09:48:22.000Z" itemprop="datePublished">2018-10-21</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Linux/">Linux</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/10/21/java-file-lock-on-linux/">在Linux下正确的使用Java锁</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近同事在linux上部署一个开源项目，为了防止这个项目生成的文件被外部其他程序修改/删除掉，他们稍微修改了下源代码在文件生成后给文件加锁，在他们开发机(Windows)上测试后没问题，就部署到服务器(CentOS)上了，结果不行，锁不住，生成的文件可以被第三方程序修改删除掉。<br>于是叫我帮忙调一下，因为我开发机用Linux Mint。</p>
+<p>看现象十之八九就是 建议锁(ADVISORY)的问题，所以也懒的看。</p>
+<p>猜测他们源码大体是这么写的：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">FileChannel channel = new RandomAccessFile(file, &quot;rw&quot;).getChannel();</span><br><span class="line">try(FileLock lock = channel.tryLock()) &#123;</span><br><span class="line">if (lock == null) &#123;</span><br><span class="line">log.debug(&quot;lock on file:&#123;&#125;&quot;, file.getPath());</span><br><span class="line">// do something</span><br><span class="line">// 花了很多时间</span><br><span class="line">&#125; else &#123;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>首先是结论：<br>代码没问题，不需改动所以不需要调什么。</p>
+<p>Linux文件锁的类型有两种：</p>
+<ul>
+<li>1.mandatory 强制锁，加上后第三方程序对加过锁的文件修改会报错：文件被占用、文件无法被修改等。这个是排它的，一般有这种需求的都想要这种锁。</li>
+<li>2.advisory 建议锁/劝告锁，加上后第三方程序(gedite、vim/vi等、touch、rm等)可以直接修改删除。这个是 <strong>建议</strong> 的，也就是说它确实提供了加锁和检测是否有锁的手段，但假设你的第三方程序根本不检测文件有没有锁就直接修改/删除了，它也不 <strong>排斥</strong>，所以只对那些修改前try一下的<strong>守规矩</strong>程序有效。</li>
+</ul>
+<p>再看一下JDK里FileLock的注释：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">Whether or not a lock actually prevents another program from accessing</span><br><span class="line">the content of the locked region is system-dependent and therefore</span><br><span class="line">unspecified. The native file-locking facilities of some systems are merely</span><br><span class="line">advisory, meaning that programs must cooperatively observe a known</span><br><span class="line">locking protocol in order to guarantee data integrity. On other systems</span><br><span class="line">native file locks are mandatory, meaning that if one program locks a</span><br><span class="line">region of a file then other programs are actually prevented from accessing</span><br><span class="line">that region in a way that would violate the lock. On yet other systems,</span><br><span class="line">whether native file locks are advisory or mandatory is configurable on a</span><br><span class="line">per-file basis. To ensure consistent and correct behavior across platforms,</span><br><span class="line">it is strongly recommended that the locks provided by this API be used as if</span><br><span class="line">they were advisory locks.</span><br></pre></td></tr></table></figure></p>
+<p>大意为是否能阻止另外的程序访问依赖于操作系统，有些操作系统下是advisory，有些则是mandatory。</p>
+<p>一般来说绝大部分发行版(Ubuntu、CentOS、Debian)等默认获取的都是advisory锁，可以使用命令：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cat /proc/locks</span><br></pre></td></tr></table></figure></p>
+<p>看下当前系统所有已有的锁的类型。</p>
+<p>如果想在Linux下mandatory锁，需要在操作系统挂载文件系统时激活才可以。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mount -o mand /dev/sdb7 /mnt</span><br></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/10/21/java-file-lock-on-linux/" data-id="ckpl281sp0008v6sepl1dnois" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/10/21/java-file-lock-on-linux/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/FileLock/">FileLock</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux/">Linux</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-deploy-java-jdk-using-ansible" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/07/27/deploy-java-jdk-using-ansible/" class="article-date">
+  <time datetime="2018-07-27T10:00:17.000Z" itemprop="datePublished">2018-07-27</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Linux/">Linux</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/07/27/deploy-java-jdk-using-ansible/">使用Ansible2.0部署JDK8</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近需要在多台新服务器部署Java环境，想到要重复同样的事这么多次就头疼，后来突然想到运维神器Ansible可以自动化部署，并且仅依赖ssh，只要在一台服务器上安装Ansible就可以，所以就想用Ansible来解决，因为毕竟偏运维所以也不想深究什么原理架构之类的，还是以解决实际问题为主，写死路径，丑陋什么的都无所谓。</p>
+<p>所以没跟着官网文档做，直接在网上找了一篇入门教程就干了起来。<br>根据网上的教程添加个hosts文件用于管理服务器ip与提取公共变量。</p>
+<figure class="highlight plain"><figcaption><span>hosts</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">[local]</span><br><span class="line">192.168.100.129</span><br><span class="line">[dw]</span><br><span class="line">192.168.100.130</span><br><span class="line">192.168.100.131</span><br><span class="line">192.168.100.132</span><br></pre></td></tr></table></figure>
+<p>然后开始写yml格式playbook。<br><figure class="highlight plain"><figcaption><span>main.yml</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">- name: mkdir</span><br><span class="line">shell: mkdir -p /root/java/</span><br><span class="line">- name: copy jdk to remote host</span><br><span class="line">copy: src=jdk-8u161-linux-x64.tar.gz dest=/root/java/</span><br><span class="line">- name: unzip jdk</span><br><span class="line">shell: tar -zxf /root/java/jdk-8u161-linux-x64.tar.gz -C /root/java/</span><br><span class="line">- name: set jdk_env copy use template</span><br><span class="line">template: src=java_home.sh.j2 dest=/root/java/set_jdk.sh</span><br><span class="line">- name: execute script to set jdkenv</span><br><span class="line">shell: sh /root/java/set_jdk.sh</span><br><span class="line">- name: source bash_profile</span><br><span class="line">shell: source /root/.bash_profile</span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>在root新建文件夹。</li>
+<li>拷贝jdk到新建的文件夹。</li>
+<li>解压jdk。</li>
+<li>拷贝设置环境变量的脚本到新建的文件夹下。</li>
+<li>执行设置环境变量的脚本。</li>
+<li>使刚才设置的环境变量生效。</li>
+</ul>
+<p>看起来没什么问题，于是直接执行。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ansible-playbook playbook/roles/java/tasks/main.yml</span><br></pre></td></tr></table></figure></p>
+<p>直接报错：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">The error appears to have been in &apos;/etc/ansible/playbook/roles/java/tasks/main.yml&apos;: line 1, column 1, but may</span><br><span class="line">be elsewhere in the file depending on the exact syntax problem.</span><br><span class="line"></span><br><span class="line">The offending line appears to be:</span><br><span class="line"></span><br><span class="line">- name: mkdir</span><br><span class="line">^ here</span><br></pre></td></tr></table></figure></p>
+<p>看错误是解析yml失败了，猜测可能是空格或tab的原因导致，查看了下yml官方要求是用一个空格，但脚本里也都是空格没有tab。</p>
+<p>没办法最后只能翻官方文档，看了官方的例子发现playbook的脚本格式与网上的教程都不一样，所以当时想会不会是因为用的Ansible2.0版本格式规则全变了，又不向下兼容导致。<br>所以写了个新建文件的小例子测试下。果然，2.0的格式与低版本的不一样，<strong>并且不向下兼容老本的playbook。</strong></p>
+<p>完整正确的Ansible2.0部署JDK的例子是：</p>
+<ul>
+<li><p>1.约定优于配置的情况下，官方建议的playbook、文件等存放的目录结构应该是：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">/etc/ansible/</span><br><span class="line">├── hosts</span><br><span class="line">└── playbook</span><br><span class="line">    └── roles</span><br><span class="line">        └── java</span><br><span class="line">            └── tasks</span><br><span class="line">                ├── files</span><br><span class="line">                │   └── jdk-8u161-linux-x64.tar.gz</span><br><span class="line">                ├── main.yml</span><br><span class="line">                └── templates</span><br><span class="line">                    └── java_home.sh.j2</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>2.playbook文件格式：</p>
+<figure class="highlight plain"><figcaption><span>main.yml</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">- hosts: dw</span><br><span class="line">  tasks:</span><br><span class="line">    - name: mkdir</span><br><span class="line">      shell: mkdir -p /root/java/</span><br><span class="line">    - name: copy jdk to remote host</span><br><span class="line">      copy: src=jdk-8u161-linux-x64.tar.gz dest=/root/java/</span><br><span class="line">    - name: unzip jdk</span><br><span class="line">      shell: tar -zxf /root/java/jdk-8u161-linux-x64.tar.gz -C /root/java/</span><br><span class="line">    - name: set jdk_env copy use template</span><br><span class="line">      template: src=java_home.sh.j2 dest=/root/java/set_jdk.sh</span><br><span class="line">    - name: execute script to set jdkenv</span><br><span class="line">      shell: sh /root/java/set_jdk.sh</span><br><span class="line">    - name: source bash_profile</span><br><span class="line">      shell: source /root/.bash_profile</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>增加了hosts，用于指定部署的服务器组，并且原本独立的命令移动到tasks下。</p>
+<ul>
+<li><p>3.设置环境变量的脚本：</p>
+<figure class="highlight plain"><figcaption><span>java_home.sh.j2</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">#!/bin/bash</span><br><span class="line">echo &apos;export JAVA_HOME=/root/java/jdk1.8.0_161&apos; &gt;&gt; /root/.bash_profile</span><br><span class="line">echo &apos;export PATH=$JAVA_HOME/bin:$JAVA_HOME/jre/bin:$PATH&apos; &gt;&gt; /root/.bash_profile</span><br><span class="line">echo &apos;export CLASSPATH=.$CLASSPATH:$JAVA_HOME/lib:$JAVA_HOME/jre/lib:$JAVA_HOME/lib/tools.jar&apos; &gt;&gt; /root/.bash_profile</span><br><span class="line">source ~/.bash_profile</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>最后执行命令：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ansible-playbook playbook/roles/java/tasks/main.yml</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>控制台输出：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">PLAY [dw] ***********************************************************************************************************************************************************************************************************</span><br><span class="line"></span><br><span class="line">TASK [Gathering Facts] **********************************************************************************************************************************************************************************************</span><br><span class="line">ok: [192.168.100.131]</span><br><span class="line">ok: [192.168.100.132]</span><br><span class="line">ok: [192.168.100.130]</span><br><span class="line"></span><br><span class="line">TASK [mkdir] ********************************************************************************************************************************************************************************************************</span><br><span class="line"> [WARNING]: Consider using the file module with state=directory rather than running mkdir.  If you need to use command because file is insufficient you can add warn=False to this command task or set</span><br><span class="line">command_warnings=False in ansible.cfg to get rid of this message.</span><br><span class="line"></span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line"></span><br><span class="line">TASK [copy jdk to remote host] **************************************************************************************************************************************************************************************</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line"></span><br><span class="line">TASK [unzip jdk] ****************************************************************************************************************************************************************************************************</span><br><span class="line"> [WARNING]: Consider using the unarchive module rather than running tar.  If you need to use command because unarchive is insufficient you can add warn=False to this command task or set command_warnings=False in</span><br><span class="line">ansible.cfg to get rid of this message.</span><br><span class="line"></span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line"></span><br><span class="line">TASK [set jdk_env copy use template] ********************************************************************************************************************************************************************************</span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line"></span><br><span class="line">TASK [execute script to set jdkenv] *********************************************************************************************************************************************************************************</span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line"></span><br><span class="line">TASK [source bash_profile] ******************************************************************************************************************************************************************************************</span><br><span class="line">changed: [192.168.100.130]</span><br><span class="line">changed: [192.168.100.131]</span><br><span class="line">changed: [192.168.100.132]</span><br><span class="line"></span><br><span class="line">PLAY RECAP **********************************************************************************************************************************************************************************************************</span><br><span class="line">192.168.100.130            : ok=7    changed=6    unreachable=0    failed=0   </span><br><span class="line">192.168.100.131            : ok=7    changed=6    unreachable=0    failed=0   </span><br><span class="line">192.168.100.132            : ok=7    changed=6    unreachable=0    failed=0</span><br></pre></td></tr></table></figure></p>
+<p>执行成功，部署全部正确完成。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/07/27/deploy-java-jdk-using-ansible/" data-id="ckpl281sk0003v6se3ujr5ung" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/07/27/deploy-java-jdk-using-ansible/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Linux/">Linux</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-spark-broadcast-mutable-hashmap-is-empty" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/05/13/spark-broadcast-mutable-hashmap-is-empty/" class="article-date">
+  <time datetime="2018-05-13T08:09:02.000Z" itemprop="datePublished">2018-05-13</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Spark/">Spark</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/05/13/spark-broadcast-mutable-hashmap-is-empty/">Spark踩坑3-共享Scala集合类</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近为了更好的了解Spark的细节，改用Spark的亲儿子Scala进行开发，得益于框架API的统一，Spark方面没什么需要重新学习的，开发完就想着按照以前的经验优化一下。<br>记得官方<a href="https://spark.apache.org/docs/2.2.0/tuning.html" target="_blank" rel="noopener">Tuning Spark</a>中，第一件要干的事就是调整序列化类库，Spark默认使用的Java serialization的序列化方式。官方建议使用Kryo类库进行序列化可以获得更好的压缩率和传输效率。<br>切换的方式很简单，只要在配置时指定序列化方式为:org.apache.spark.serializer.KryoSerializer即可<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line">object Recommender &#123;</span><br><span class="line">  private val log = Logger(Recommender.getClass)</span><br><span class="line"></span><br><span class="line">  // load config</span><br><span class="line">  private val config = ConfigFactory.load(&quot;config.properties&quot;)</span><br><span class="line"></span><br><span class="line">  // spark config</span><br><span class="line">  private val appName = config.getString(&quot;appName&quot;)</span><br><span class="line">  private val mode = config.getString(&quot;mode&quot;)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">  def main(args: Array[String]): Unit = &#123;</span><br><span class="line">    log.info(&quot;init &#123;&#125;，mode:&#123;&#125;&quot;, appName, mode)</span><br><span class="line"></span><br><span class="line">    // init spark</span><br><span class="line">    val sc = new SparkConf()</span><br><span class="line">      .setAppName(appName)</span><br><span class="line">      .setMaster(mode)</span><br><span class="line">      .set(&quot;spark.serializer&quot;, &quot;org.apache.spark.serializer.KryoSerializer&quot;)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    val session = SparkSession.builder().config(sc).getOrCreate()</span><br><span class="line">    try &#123;</span><br><span class="line">      initMat(session)</span><br><span class="line"></span><br><span class="line">      var headMap = new mutable.LinkedHashMap[String, Int]()</span><br><span class="line">      headMap.put(&quot;ID&quot;, 0)</span><br><span class="line">      headMap.put(&quot;UID&quot;, 1)</span><br><span class="line"></span><br><span class="line">      val headBroadcast = ss.sparkContext.broadcast[mutable.LinkedHashMap[String, Int]](headMap)</span><br><span class="line"></span><br><span class="line">      // 略...</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    &#125; finally &#123;</span><br><span class="line">      session.close()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>但是当我切换序列化方式后，我发现我要广播的一个LinkedHashMap每次获取都是空的。<br>于是猜测Kryo框架是不是没办法序列化Scala的集合类型，因为大部分的序列化框架对集合类都有或多或少的一些限制，比如Protostuff等。<br>于是写个测试代码测试一下：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">def main(args: Array[String]): Unit = &#123;</span><br><span class="line">    var headMap = new mutable.LinkedHashMap[String, Int]()</span><br><span class="line">    headMap.put(&quot;a&quot;, 1)</span><br><span class="line">    headMap.put(&quot;b&quot;, 2)</span><br><span class="line">    headMap.put(&quot;c&quot;, 3)</span><br><span class="line">    //</span><br><span class="line">    val kryo = new Kryo()</span><br><span class="line">    val output = new Output(new FileOutputStream(&quot;e:\\ser.bin&quot;))</span><br><span class="line">    kryo.writeObject(output, headMap)</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></p>
+<p>最终写到磁盘ser.bin的才1个字节，都不用反序列化，肯定不对。<br>查了一些官方文档，有个相对简单点的解决办法：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kryo.register(classOf[mutable.HashMap[String, (String, String)]], new JavaSerializer)</span><br></pre></td></tr></table></figure></p>
+<p>将原生类做为自定义的类注册下，并指定序列化方式仍然使用jdk的。。。<br>虽然问题能解决但这其实已经背离本意了，好在一点是mutable.HashMap使用jdk序列化，其他的类使用kryo，相比较以前全部用jdk效率确实高点。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/05/13/spark-broadcast-mutable-hashmap-is-empty/" data-id="ckpl281t2000yv6seidm79iv9" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/05/13/spark-broadcast-mutable-hashmap-is-empty/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Kryo/">Kryo</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Spark/">Spark</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-spark-cannot-assign-instance-of-serializedlambda-to-field" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/03/22/spark-cannot-assign-instance-of-serializedlambda-to-field/" class="article-date">
+  <time datetime="2018-03-22T03:30:26.000Z" itemprop="datePublished">2018-03-22</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Spark/">Spark</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/03/22/spark-cannot-assign-instance-of-serializedlambda-to-field/">Spark踩坑2—Lambda表达式序列化异常</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>这几天用Spark写一些正式的功能又踩到坑了，当submit程序到yarn以client模式运行时出现：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cannot assign instance of java.lang.invoke.SerializedLambda to field</span><br></pre></td></tr></table></figure></p>
+<p>异常显示序列化lambda异常。。。。<br>诡吊的一点在于cluster模式没有问题。<br>关于client模式和cluster模式网上有详细的解释，简单来说：</p>
+<ul>
+<li>cluster模式下ResourceManger会在集群中的某台NodeManger服务器上启动一个ApplicationMaster，也就是Driver的容器，然后将ApplicationMaster分配给这台NodeManger。</li>
+<li>client模式下ResourceManger会在<strong>本地</strong>启动ApplicationMaster并将其分配给<strong>本地</strong>的NodeManger。</li>
+</ul>
+<p>由于用的JDK8所有程序中确实有大量的Lambda，一直觉得Lambda是匿名内部类的语法糖而已，运行时该擦除擦除，看到lang包下有个专门的SerializedLambda就知道不仅仅是个语法糖而已。<br>根据<a href="https://stackoverflow.com/questions/28079307/unable-to-deserialize-lambda/28084460#28084460" target="_blank" rel="noopener">stackoverflow</a>上的一解答来看：</p>
+<blockquote>
+<p>Implementors of serializable lambdas, such as compilers or language runtime libraries, are expected to ensure that instances deserialize properly. One means to do so is to ensure that the writeReplace method returns an instance of SerializedLambda, rather than allowing default serialization to proceed.<br>当编译器或一个运行时的类库序列化一个lambad时，先要确保实例正确的反序列化，其中一个方法是确保writeReplace方法返回的是一个SerializedLambda实例，而不是用默认的序列化去处理。</p>
+</blockquote>
+<blockquote>
+<p>SerializedLambda has a readResolve method that looks for a (possibly private) static method called $deserializeLambda$(SerializedLambda) in the capturing class, invokes that with itself as the first argument, and returns the result. Lambda classes implementing $deserializeLambda$ are responsible for validating that the properties of the SerializedLambda are consistent with a lambda actually captured by that class.<br>当反序列化时候SerializedLambda有一个readResolve方法，它会在capturing class(个人理解为调用lambda的那个类)查找一个可能私有的静态方法$deserializeLambda$，并将自己作为参数进行调用，实现$deserializeLambda$ 方法负责验证SerializedLambda的属性是否与调用的lambda一致。</p>
+</blockquote>
+<p>所以说如果没有定义$deserializeLambda$这个方法，反序列化仍然会调用这个方法进行验证。<br>如果要解决这个问题有两种方法。</p>
+<ul>
+<li>1.不写lambda，换成匿名内部类。</li>
+<li>2.将包含lambda的类单独打包，使用Spark的setJar方法提交这个jar。代码：<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">SparkConf sconf = new SparkConf()</span><br><span class="line">  .setJars(new String[]&#123;&quot;/root/lambda.jar&quot;&#125;)</span><br><span class="line">  .setMaster(&quot;yarn&quot;);</span><br></pre></td></tr></table></figure>
+</li>
+</ul>
+<p>但仍然搞不懂的是为何cluster模式下没这问题，猜想是因为client模式下代码不进行完整的分发，所以包含lambda的代码无法在其他服务器上正确的序列化和反序列化，而cluster模式下都是整个打包分发到集群中其他的NodeManager中执行，所以没问题？<br>因为setJar方法的注释说明:传入的jar包会被分发到集群中的其他work中。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/03/22/spark-cannot-assign-instance-of-serializedlambda-to-field/" data-id="ckpl281ta001sv6setbbwc534" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/03/22/spark-cannot-assign-instance-of-serializedlambda-to-field/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Spark/">Spark</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-spark-could-not-initialize-class-main" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/03/12/spark-could-not-initialize-class-main/" class="article-date">
+  <time datetime="2018-03-12T07:03:56.000Z" itemprop="datePublished">2018-03-12</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Spark/">Spark</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/03/12/spark-could-not-initialize-class-main/">Spark踩坑1—无法初始化Main</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>上周用Spark开发了一个小程序，打包好submit到yarn后slave却一直报错:<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">java.lang.NoClassDefFoundError: Could not initialize class Main</span><br></pre></td></tr></table></figure></p>
+<p>代码：<br><figure class="highlight plain"><figcaption><span>Main</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">* @author liuxinsi</span><br><span class="line">* @mail akalxs@gmail.com</span><br><span class="line"> */</span><br><span class="line">public class Main &#123;</span><br><span class="line"></span><br><span class="line">private static final JavaSparkContext sc = new JavaSparkContext(</span><br><span class="line">new SparkConf().setAppName(“Loader”).setMaster(“yarn”)</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">private static final SQLContext sqlContext = new SQLContext(sc);</span><br><span class="line"></span><br><span class="line">public static void main(String[]() args) &#123;</span><br><span class="line">    DataFrame df = sqlContext.read().json(&quot;data.json&quot;);</span><br><span class="line">    // 一些基本操作，略...</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>但开发时在local环境下则一点问题也没有。<br>一开始怀疑yarn环境里有重复的fatjar导致两个包的Main冲突，后来检查了一遍没问题，yarn本身也是隔离的。<br>google了一圈基本上都是说序列化或环境的问题。<br>仔细想了一下当submit到yarn的流程是把Spark的环境和提交的jar打了一个zip包放到HDFS上进行分发，而Spark程序运行时仅在数据混洗shuffle或其他传输情况才会进行序列化，而且无论是jdk的序列化还是kryo的序列化，如果对象不能序列化也是报序列化的异常，不可能连入口类都没初始化就跑到序列化的步骤去了。</p>
+<p>环境问题的话也在加了-verbose情况下仔细检查了加载的jar包和顺序，也没发现什么问题。<br>最后实在没辙只能不停翻官方提供的例子看看有没有什么头绪，找了半天最后突然发现唯一一点不同就是官方的小demo里的所有SparkContext的初始都是放在函数里，也就是都是局部变量，而我一直都是写成全局变量。所以猜想会不会是这个原因导致的，后来把代码改成：<br><figure class="highlight plain"><figcaption><span>Main</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">* @author liuxinsi</span><br><span class="line">* @mail akalxs@gmail.com</span><br><span class="line"> */</span><br><span class="line">public class Main &#123;</span><br><span class="line"></span><br><span class="line">public static void main(String[]() args) &#123;</span><br><span class="line">    JavaSparkContext sc = new JavaSparkContext(</span><br><span class="line">        new SparkConf().setAppName(“Loader”).setMaster(“yarn”)</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    SQLContext sqlContext = new SQLContext(sc);</span><br><span class="line"></span><br><span class="line">    DataFrame df = sqlContext.read().json(&quot;data.json&quot;);</span><br><span class="line">    // 一些基本操作，略...</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>打包后提交果然解决，虽然Spark的亲儿子是Scala这种函数式编程语言，但怎么也想不明白一个全局变量为什么会没办法初始化。<br>还有坑人的一点是本地local[*]模式下也测不出这种问题。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/03/12/spark-could-not-initialize-class-main/" data-id="ckpl281t7001hv6sec93v3hvn" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/03/12/spark-could-not-initialize-class-main/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Spark/">Spark</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+    <article id="post-gson-deserialize-object-which-has-generic" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2018/01/08/gson-deserialize-object-which-has-generic/" class="article-date">
+  <time datetime="2018-01-08T08:44:15.000Z" itemprop="datePublished">2018-01-08</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Java/">Java</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 itemprop="name">
+      <a class="article-title" href="/2018/01/08/gson-deserialize-object-which-has-generic/">Gson反序列化包含泛型的对象</a>
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近在重构一个遗留项目，项目中关于Json序列化/反序列化操作几乎都是显示的手动序列化，代码散落在各个方法中，丝毫没有利用框架的自动序列化机制。<br>重构的第一步是去除冗余和提炼共通方法。所以将序列化与反序列提取出来。<br>但提取反序列化带泛型的对象出了问题。<br>由于泛型在编译时会被擦除的特性，一般情况下要反序列化包含泛型的对象时需要用到Gson的<b>TypeToken</b>用于返回泛型类。举例：</p>
+<figure class="highlight plain"><figcaption><span>Response</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * 响应对象。&lt;br/&gt;</span><br><span class="line"> * &#123;@link #errMesg&#125;和&#123;@link #errDetail&#125;仅在状态&#123;@link #status&#125;为&#123;@link Status#ERROR&#125;时出现。</span><br><span class="line"> *</span><br><span class="line"> * @author liuxinsi</span><br><span class="line"> * @mail akalxs@gmail.com</span><br><span class="line"> */</span><br><span class="line">@Data</span><br><span class="line">public class Response&lt;T&gt; &#123;</span><br><span class="line">    /**</span><br><span class="line">     * 业务数据</span><br><span class="line">     */</span><br><span class="line">    private T data;</span><br><span class="line">    /**</span><br><span class="line">     * 响应状态</span><br><span class="line">     */</span><br><span class="line">    private Status status;</span><br><span class="line">    /**</span><br><span class="line">     * 错误消息</span><br><span class="line">     */</span><br><span class="line">    private String errMesg;</span><br><span class="line">    /**</span><br><span class="line">     * 错误堆栈</span><br><span class="line">     */</span><br><span class="line">    private String errDetail;</span><br><span class="line"></span><br><span class="line">    public enum Status &#123;</span><br><span class="line">        SUCCESS, ERROR;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<figure class="highlight plain"><figcaption><span>ValidateTokenResponse</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * 对应&#123;@link com.lxs.mms.auth.resource.AuthenticationResource#validateToken(ValidateTokenRequest)&#125; 响应。</span><br><span class="line"> *</span><br><span class="line"> * @author liuxinsi</span><br><span class="line"> * @mail akalxs@gmail.com</span><br><span class="line"> */</span><br><span class="line">@Data</span><br><span class="line">@ApiModel(value = &quot;验证Token响应&quot;)</span><br><span class="line">public class ValidateTokenResponse &#123;</span><br><span class="line">    @ApiModelProperty(value = &quot;Token是否合法,true合法，false非法。&quot;)</span><br><span class="line">    private Boolean legally;</span><br><span class="line">    @ApiModelProperty(value = &quot;Token中的Audience属性&quot;)</span><br><span class="line">    private String audience;</span><br><span class="line">    @ApiModelProperty(value = &quot;描述&quot;)</span><br><span class="line">    private String desc;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>包装类Response用于抽象共通的响应，其中data是各个业务的对象，所以是个泛型。<br>ValidateTokenResponse，具体的业务响应。封装时候将对象Set到Response后进行序列化。</p>
+<p>反序列化时由于泛型被擦，如果直接用<b>fromJson</b>方法则data的类型不会是期望的业务类，而是List&lt;LinkedHashMap&gt;。<br>所以Gson提供了TypeToken用于处理这个问题：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Gson gson = new Gson();</span><br><span class="line">Type jsonType = new TypeToken&lt;Response&lt;ValidateTokenResponse&gt;&gt;() &#123;</span><br><span class="line">&#125;.getType();</span><br><span class="line">Response&lt;ValidateTokenResponse&gt; r=gson.fromJson(json, jsonType);</span><br></pre></td></tr></table></figure></p>
+<p>由于TypeToken的构造是protected的，所以需要new一个匿名子类(anonymous subclass)，在构造的时候TypeToken会根据你显示传入的泛型获取泛型类并作为ParameterizedType返回。这样在fromJson的时候就可以知道具体的泛型类，然后反序列化时就可以得到正确的data类型。</p>
+<p>所以在提取这种代码时候进行的封装则按常理应该是：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; Response&lt;T&gt; unwrap(String json) &#123;</span><br><span class="line">        Gson gson = new Gson();</span><br><span class="line">        Type jsonType = new TypeToken&lt;Response&lt;T&gt;&gt;() &#123;</span><br><span class="line">        &#125;.getType();</span><br><span class="line">        return gson.fromJson(json, jsonType);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>看起来毫无破绽，编译运行都没有问题，但就是data属性还是List<linkedhashmap>。<br>因为上面的T是一个类型参数(java.lang.reflect.TypeVariable)并不是具体的业务类。所以TypeToken没法取得期待的泛型类。<br>根据TypeToken的源码来看它在获取泛型类的时候实际上返回了一个<b>ParameterizedType</b>用于代表泛型类。<br>所以按照思路只要实现这个接口然后告诉它正确的泛型类就可以了。</linkedhashmap></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">public static &lt;T&gt; Response&lt;T&gt; unwrap(String json, Class&lt;?&gt; clazz) &#123;</span><br><span class="line">       return gson.fromJson(json, new ParameterizedType() &#123;</span><br><span class="line">           /**</span><br><span class="line">           * 原始类型实际的泛型类，与外部传入&lt;code&gt;clazz&lt;/code&gt;显示指明。</span><br><span class="line">           */</span><br><span class="line">           @Override</span><br><span class="line">           public Type[] getActualTypeArguments() &#123;</span><br><span class="line">               return new Class[]&#123;clazz&#125;;</span><br><span class="line">           &#125;</span><br><span class="line"></span><br><span class="line">           /**</span><br><span class="line">           * 原始类型。</span><br><span class="line">           */</span><br><span class="line">           @Override</span><br><span class="line">           public Type getRawType() &#123;</span><br><span class="line">               return Response.class;</span><br><span class="line">           &#125;</span><br><span class="line">           </span><br><span class="line">           /**</span><br><span class="line">           * 如果是内部类需要指明所属的对象，如果不是返回null。</span><br><span class="line">           */</span><br><span class="line">           @Override</span><br><span class="line">           public Type getOwnerType() &#123;</span><br><span class="line">               return null;</span><br><span class="line">           &#125;</span><br><span class="line">       &#125;);</span><br><span class="line"></span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+<p>调用时：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Response&lt;ValidateTokenResponse&gt; r = ResponseUnwrap.unwrap(json,ValidateTokenResponse.class);</span><br></pre></td></tr></table></figure></p>
+<p>就可以正确的处理反序列化。<br>其实还可以封装的更灵活点，比如处理多个泛型需要修改传参和getActualTypeArguments方法的返回，如果是传集合类型还要单独处理下，不应该写死RawType。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2018/01/08/gson-deserialize-object-which-has-generic/" data-id="ckpl281ss000cv6sewghx8z50" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2018/01/08/gson-deserialize-object-which-has-generic/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Gson/">Gson</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Java/">Java</a></li></ul>
+
+    </footer>
+  </div>
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = undefined;
+  this.page.identifier = undefined; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+
+  
+
+
+  <nav id="page-nav">
+    <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/2/">__('next') &raquo;</a>
+  </nav>
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/MongoDB/">MongoDB</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spark/">Spark</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/业务/">业务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Bug/">Bug</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cheetsheet/">Cheetsheet</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/">Docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPClient/">FTPClient</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPServer/">FTPServer</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FileLock/">FileLock</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gson/">Gson</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jersey/">Jersey</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/KONG/">KONG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kryo/">Kryo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/">Linux</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MongoDB/">MongoDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Morphia/">Morphia</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NFS/">NFS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nacos/">Nacos</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/">Nginx</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenSSH/">OpenSSH</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SOCKET/">SOCKET</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spark/">Spark</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring-Boot/">Spring-Boot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swagger/">Swagger</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/TCP/">TCP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tomcat/">Tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ramfs/">ramfs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/业务/">业务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/优化/">优化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全传输/">安全传输</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/微服务/">微服务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/设计/">设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Ansible/" style="font-size: 10px;">Ansible</a> <a href="/tags/Bug/" style="font-size: 10px;">Bug</a> <a href="/tags/Cheetsheet/" style="font-size: 10px;">Cheetsheet</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/FTPClient/" style="font-size: 10px;">FTPClient</a> <a href="/tags/FTPServer/" style="font-size: 10px;">FTPServer</a> <a href="/tags/FileLock/" style="font-size: 10px;">FileLock</a> <a href="/tags/Gson/" style="font-size: 10px;">Gson</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Jersey/" style="font-size: 12.5px;">Jersey</a> <a href="/tags/KONG/" style="font-size: 10px;">KONG</a> <a href="/tags/Kryo/" style="font-size: 10px;">Kryo</a> <a href="/tags/Linux/" style="font-size: 20px;">Linux</a> <a href="/tags/Microservices/" style="font-size: 15px;">Microservices</a> <a href="/tags/MongoDB/" style="font-size: 17.5px;">MongoDB</a> <a href="/tags/Morphia/" style="font-size: 12.5px;">Morphia</a> <a href="/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/tags/Nacos/" style="font-size: 10px;">Nacos</a> <a href="/tags/Nginx/" style="font-size: 10px;">Nginx</a> <a href="/tags/OpenSSH/" style="font-size: 10px;">OpenSSH</a> <a href="/tags/RESTful-Api/" style="font-size: 17.5px;">RESTful Api</a> <a href="/tags/SOCKET/" style="font-size: 10px;">SOCKET</a> <a href="/tags/Spark/" style="font-size: 15px;">Spark</a> <a href="/tags/Spring-Boot/" style="font-size: 10px;">Spring-Boot</a> <a href="/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/tags/TCP/" style="font-size: 10px;">TCP</a> <a href="/tags/Tomcat/" style="font-size: 10px;">Tomcat</a> <a href="/tags/ramfs/" style="font-size: 10px;">ramfs</a> <a href="/tags/业务/" style="font-size: 10px;">业务</a> <a href="/tags/优化/" style="font-size: 10px;">优化</a> <a href="/tags/安全传输/" style="font-size: 10px;">安全传输</a> <a href="/tags/安全认证技术/" style="font-size: 12.5px;">安全认证技术</a> <a href="/tags/微服务/" style="font-size: 12.5px;">微服务</a> <a href="/tags/设计/" style="font-size: 10px;">设计</a> <a href="/tags/踩坑/" style="font-size: 20px;">踩坑</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">七月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/10/">十月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/07/07/nacos-ephemeral/">Nacos临时节点和永久节点的本质意义</a>
+          </li>
+        
+          <li>
+            <a href="/2019/03/11/design-for-abnormal-payment/">奇葩的异常支付场景</a>
+          </li>
+        
+          <li>
+            <a href="/2019/01/21/macvim-spacevim-characters-illegible-contents/">MacVim使用SpaceVim后中文乱码</a>
+          </li>
+        
+          <li>
+            <a href="/2018/12/01/secure-data-transmission-plan/">相对安全的网络传输方案</a>
+          </li>
+        
+          <li>
+            <a href="/2018/10/21/java-file-lock-on-linux/">在Linux下正确的使用Java锁</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2021 Liu Xin Si<br>
+      Powered by <a href="http://hexo.io/" rel='external nofollow' target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'liuxinsi';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/count.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>

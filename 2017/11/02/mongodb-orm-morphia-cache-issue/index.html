@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head><meta name="generator" content="Hexo 3.9.0">
+  <meta charset="utf-8">
+  
+  <title>MongoDB ORM框架Morphia缓存小坑 | Code And Coffee|Morphia缓存查询结果</title>
+  <meta name="keywords" content="MongoDB,Morphia cache,Morphia,Morphia缓存查询结果">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="Morphia缓存查询结果">
+<meta name="keywords" content="MongoDB,Morphia cache,Morphia">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MongoDB ORM框架Morphia缓存小坑">
+<meta property="og:url" content="https://codeandcoffee.cn/2017/11/02/mongodb-orm-morphia-cache-issue/index.html">
+<meta property="og:site_name" content="Code And Coffee">
+<meta property="og:description" content="Morphia缓存查询结果">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2021-02-09T03:00:36.335Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="MongoDB ORM框架Morphia缓存小坑">
+<meta name="twitter:description" content="Morphia缓存查询结果">
+  
+  
+  
+    <link rel="icon" href="https://codeandcoffee.cn/icon.png">
+  
+  
+    <link href="https://codeandcoffee.cn/css.css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+</html>
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Code And Coffee</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">little thing stoppin</a><br/><br/>
+          <a href="https://github.com/liuxinsi" target="_blank"><image src="https://codeandcoffee.cn/fluidicon.png" width="2%" height="2%"/></a>&nbsp;
+          <a href="https://codeandcoffee.cn/resume.html" target="_blank"><image src="https://codeandcoffee.cn/handshake.png"  width="2%" height="2%"/></a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="搜索"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://codeandcoffee.cn"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-mongodb-orm-morphia-cache-issue" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/11/02/mongodb-orm-morphia-cache-issue/" class="article-date">
+  <time datetime="2017-11-02T06:59:43.000Z" itemprop="datePublished">2017-11-02</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/MongoDB/">MongoDB</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      MongoDB ORM框架Morphia缓存小坑
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>最近在用Morphia更新MongoDB数据时发现更新完后没有拿到更新后的新数据，一开始没有在意以为MongDB复制集读写分离后拿的从服务器数据，从服务器还没有同步到更新。后来一想不太对，复制集的op同步的间隔很短，更新和查询又是在一个上下文中，而且当时读写相当空闲，虽然NOSQL都是保证最终一致性，但如果这么简单的一个操作都没办法保证原子性那也太搓了，而且用MongoDB这么多年也没发现类似的问题。</p>
+<p>重现代码：<br><figure class="highlight plain"><figcaption><span>Test</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">@Test</span><br><span class="line">public void test() &#123;</span><br><span class="line">    Query&lt;Blog&gt; q = datastore.createQuery(Blog.class).field(&quot;author&quot;).equal(&quot;b&quot;);</span><br><span class="line">    System.out.println(q.get());</span><br><span class="line"></span><br><span class="line">    Query&lt;Blog&gt; ctQ = datastore.createQuery(Blog.class);</span><br><span class="line">    ctQ.field(&quot;author&quot;).equal(&quot;b&quot;);</span><br><span class="line">    UpdateOperations&lt;Blog&gt; u = datastore.createUpdateOperations(Blog.class);</span><br><span class="line">    u.set(&quot;post&quot;, &quot;zzzz&quot;);</span><br><span class="line">    datastore.update(ctQ, u);</span><br><span class="line">    </span><br><span class="line">    System.out.println(q.get());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>执行一下查询，然后在更新，在查询。根据日志显示：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">#####第一次执行查询，post是1111111</span><br><span class="line">Creating MappedClass for class mongo.service.Blog</span><br><span class="line">[TRACE] 2017-11-02 09:21:00,506 [main] [org.mongodb.morphia.query.QueryImpl] - Running query(Blog) : &#123; &quot;author&quot; : &quot;b&quot;&#125;, fields:null,off:0,limit:1</span><br><span class="line">[TRACE] 2017-11-02 09:21:00,506 [main] [org.mongodb.morphia.query.QueryImpl] - Getting cursor(Blog)  for query:&#123; &quot;author&quot; : &quot;b&quot;&#125;</span><br><span class="line">[DEBUG] 2017-11-02 09:21:00,506 [main] [org.mongodb.driver.protocol.command] - Sending command &#123;find : BsonString&#123;value=&apos;Blog&apos;&#125;&#125; to database PTMO_TEST on connection [connectionId&#123;localValue:2, serverValue:7577&#125;] to server 26.47.136.186:57004</span><br><span class="line">[DEBUG] 2017-11-02 09:21:00,508 [main] [org.mongodb.driver.protocol.command] - Command execution completed</span><br><span class="line">Blog(_id=59fa6b4b934f0741cd03663e, author=b, post=1111111, comments=null)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">####### 执行更新，更新post为zzzz</span><br><span class="line">[TRACE] 2017-11-02 09:21:00,513 [main] [org.mongodb.morphia.DatastoreImpl] - Executing update(Blog) for query: &#123; &quot;author&quot; : &quot;b&quot;&#125;, ops: &#123; &quot;$set&quot; : &#123; &quot;post&quot; : &quot;zzzz&quot;&#125;&#125;, multi: true, upsert: false</span><br><span class="line">[DEBUG] 2017-11-02 09:21:00,520 [main] [org.mongodb.driver.protocol.update] - Updating documents in namespace PTMO_TEST.Blog on connection [connectionId&#123;localValue:2, serverValue:7577&#125;] to server 26.47.136.186:57004</span><br><span class="line">[DEBUG] 2017-11-02 09:21:00,529 [main] [org.mongodb.driver.protocol.update] - Update completed</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">######第二次执行查询，查询出来的对象post仍然是1111111</span><br><span class="line">[TRACE] 2017-11-02 09:21:00,531 [main] [org.mongodb.morphia.query.QueryImpl] - Running query(Blog) : &#123; &quot;author&quot; : &quot;b&quot;&#125;, fields:null,off:0,limit:1</span><br><span class="line">[TRACE] 2017-11-02 09:21:00,531 [main] [org.mongodb.morphia.query.QueryImpl] - Getting cursor(Blog)  for query:&#123; &quot;author&quot; : &quot;b&quot;&#125;</span><br><span class="line">[DEBUG] 2017-11-02 09:21:00,532 [main] [org.mongodb.driver.protocol.command] - Sending command &#123;find : BsonString&#123;value=&apos;Blog&apos;&#125;&#125; to database PTMO_TEST on connection [connectionId&#123;localValue:2, serverValue:7577&#125;] to server 26.47.136.186:57004</span><br><span class="line">Blog(_id=59fa6b4b934f0741cd03663e, author=b, post=1111111, comments=null)</span><br></pre></td></tr></table></figure></p>
+<p>就是这迷惑性的日志，让我觉得每次 q.get()就是向数据库进行查询操作。<br>我一开始以为是数据没有落实所以读到是老数据，于是修改update时 WriteConcern进行更新。</p>
+<figure class="highlight plain"><figcaption><span>Test</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">datastore.update(ctQ,u, false, WriteConcern.JOURNALED);</span><br></pre></td></tr></table></figure>
+<ul>
+<li>JOURNALED:        确保数据到磁盘上的事务日志中才返回。</li>
+<li>MAJORITY:         大多数数据节点确认后才返回。</li>
+<li>ACKNOWLEDGED:     默认机制，服务器收到就返回。</li>
+<li>UNACKNOWLEDGED:   socket write后没报异常就返回。</li>
+<li>W1/W2/W3:         1/2/3个成员确认后才返回。</li>
+</ul>
+<p>然而仍然没什么用，不是数据落实问题。后来想到MongoDB中原子性的更新是 findAndModify ,于是改成findAndModify：<br><figure class="highlight plain"><figcaption><span>Test</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">//      datastore.update(ctQ, u);</span><br><span class="line">        Blog b = datastore.findAndModify(ctQ, u);</span><br><span class="line">        System.out.println(b);</span><br></pre></td></tr></table></figure><br>执行后确实拿到了最新的数据，虽然问题可以换成FAM解决但仍然想知道问题的原因，于是跟了一下get()的源码。</p>
+<p>Query get的实现类 QueryImpl：<br><figure class="highlight plain"><figcaption><span>QueryImpl</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">public T get() &#123;</span><br><span class="line">    final int oldLimit = limit;</span><br><span class="line">    limit = 1;</span><br><span class="line">    final Iterator&lt;T&gt; it = fetch().iterator();</span><br><span class="line">    limit = oldLimit;</span><br><span class="line">    return (it.hasNext()) ? it.next() : null;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>实际上是fetch方法执行的查询<br><figure class="highlight plain"><figcaption><span>QueryImpl</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">@Override</span><br><span class="line">public MorphiaIterator&lt;T, T&gt; fetch() &#123;</span><br><span class="line">    final DBCursor cursor = prepareCursor();</span><br><span class="line">    if (LOG.isTraceEnabled()) &#123;</span><br><span class="line">        LOG.trace(&quot;Getting cursor(&quot; + dbColl.getName() + &quot;)  for query:&quot; + cursor.getQuery());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return new MorphiaIterator&lt;T, T&gt;(ds, cursor, ds.getMapper(), clazz, dbColl.getName(), cache);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>在prepareCursor()方法中，确实可以看到框架封装了DBObject以及DBCollection，并确确实实的调用了find方法进行查询：<br><figure class="highlight plain"><figcaption><span>QueryImpl</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * Prepares cursor for iteration</span><br><span class="line"> *</span><br><span class="line"> * @return the cursor</span><br><span class="line"> */</span><br><span class="line">public DBCursor prepareCursor() &#123;</span><br><span class="line">    final DBObject query = getQueryObject();</span><br><span class="line">    final DBObject fields = getFieldsObject();</span><br><span class="line"></span><br><span class="line">    if (LOG.isTraceEnabled()) &#123;</span><br><span class="line">        LOG.trace(&quot;Running query(&quot; + dbColl.getName() + &quot;) : &quot; + query + &quot;, fields:&quot; + fields + &quot;,off:&quot; + offset + &quot;,limit:&quot; + limit);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    final DBCursor cursor = dbColl.find(query, fields);</span><br><span class="line">    cursor.setDecoderFactory(ds.getDecoderFact());</span><br><span class="line">    ...</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure></p>
+<p>但是返回的cursor封装到了MorphiaIterator里，并且传参跟随着一个cache。<br>MorphiaIterator也是Iterator的实现，其中封装next操作，在获取到DBOBject进行反序列化操作，具体反序列化操作调用的Mapper类中的方法：<br><figure class="highlight plain"><figcaption><span>Mapper</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line"> * Converts a DBObject back to a type-safe java object (POJO)</span><br><span class="line"> *</span><br><span class="line"> * @param &lt;T&gt;       the type of the entity</span><br><span class="line"> * @param datastore the Datastore to use when fetching this reference</span><br><span class="line"> * @param dbObject  the DBObject containing the document from mongodb</span><br><span class="line"> * @param entity    the instance to populate</span><br><span class="line"> * @param cache     the EntityCache to use</span><br><span class="line"> * @return the entity</span><br><span class="line"> */</span><br><span class="line">public &lt;T&gt; T fromDb(final Datastore datastore, final DBObject dbObject, final T entity, final EntityCache cache) &#123;</span><br><span class="line">    //hack to bypass things and just read the value.</span><br><span class="line">    if (entity instanceof MappedField) &#123;</span><br><span class="line">        readMappedField(datastore, (MappedField) entity, entity, cache, dbObject);</span><br><span class="line">        return entity;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // check the history key (a key is the namespace + id)</span><br><span class="line"></span><br><span class="line">    if (dbObject.containsField(ID_KEY) &amp;&amp; getMappedClass(entity).getIdField() != null</span><br><span class="line">        &amp;&amp; getMappedClass(entity).getEntityAnnotation() != null) &#123;</span><br><span class="line">        final Key&lt;T&gt; key = new Key(entity.getClass(), getCollectionName(entity.getClass()), dbObject.get(ID_KEY));</span><br><span class="line">        final T cachedInstance = cache.getEntity(key);</span><br><span class="line">        if (cachedInstance != null) &#123;</span><br><span class="line">            return cachedInstance;</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            cache.putEntity(key, entity); // to avoid stackOverflow in recursive refs</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    final MappedClass mc = getMappedClass(entity);</span><br><span class="line"></span><br><span class="line">    final DBObject updated = mc.callLifecycleMethods(PreLoad.class, entity, dbObject, this);</span><br><span class="line">    try &#123;</span><br><span class="line">        for (final MappedField mf : mc.getPersistenceFields()) &#123;</span><br><span class="line">            readMappedField(datastore, mf, entity, cache, updated);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; catch (final MappingException e) &#123;</span><br><span class="line">        Object id = dbObject.get(ID_KEY);</span><br><span class="line">        String entityName = entity.getClass().getName();</span><br><span class="line">        throw new MappingException(format(&quot;Could not map %s with ID: %s in database &apos;%s&apos;&quot;, entityName, id,</span><br><span class="line">                                          datastore.getDB().getName()), e);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    if (updated.containsField(ID_KEY) &amp;&amp; getMappedClass(entity).getIdField() != null) &#123;</span><br><span class="line">        final Key key = new Key(entity.getClass(), getCollectionName(entity.getClass()), updated.get(ID_KEY));</span><br><span class="line">        cache.putEntity(key, entity);</span><br><span class="line">    &#125;</span><br><span class="line">    mc.callLifecycleMethods(PostLoad.class, entity, updated, this);</span><br><span class="line">    return entity;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>可以看到22行-28行是有缓存操作的，缓存的key是集合名和_id值，也就是说虽然第二个get确实执行了查询操作，但由于_id一样所以Morphia直接获取了cachedInstance操作，导致拿到的是第一次的缓存结果。<br>根据cache的注释来看，在同一个query对象的查询返回的都是缓存。<br>所以后续的查询其实有一部分是为了获取_id值用于拼cache key的，如果命中就取缓存。<br>比较坑的是如果有多次查询，并且查询结果比较大，后续的查询其实是浪费，这种缓存机制应该交给开发者进行控制，还能省一些查询。</p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://codeandcoffee.cn/2017/11/02/mongodb-orm-morphia-cache-issue/" data-id="ckpl281t40016v6sezncstqv0" class="article-share-link">Share</a>
+      
+        <a href="https://codeandcoffee.cn/2017/11/02/mongodb-orm-morphia-cache-issue/#disqus_thread" class="article-comment-link">留言</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/MongoDB/">MongoDB</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Morphia/">Morphia</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="/2018/01/08/gson-deserialize-object-which-has-generic/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Newer</strong>
+      <div class="article-nav-title">
+        
+          Gson反序列化包含泛型的对象
+        
+      </div>
+    </a>
+  
+  
+    <a href="/2017/09/08/tomcat-hangs-on-deploying/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Tomcat在部署应用时卡住</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  this.page.url = https://codeandcoffee.cn/2017/11/02/mongodb-orm-morphia-cache-issue/;
+  this.page.identifier = https://codeandcoffee.cn/2017/11/02/mongodb-orm-morphia-cache-issue/; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+  };
+  */
+  (function() { // DON'T EDIT BELOW THIS LINE
+  var d = document, s = d.createElement('script');
+  s.src = 'https://liuxinsi.disqus.com/embed.js';
+  s.setAttribute('data-timestamp', +new Date());
+  (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+                                  
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">分类</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Docker/">Docker</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Java/">Java</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Linux/">Linux</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/MongoDB/">MongoDB</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/Spark/">Spark</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/业务/">业务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/微服务/">微服务</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/设计/">设计</a></li><li class="category-list-item"><a class="category-list-link" href="/categories/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Ansible/">Ansible</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Bug/">Bug</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Cheetsheet/">Cheetsheet</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Docker/">Docker</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPClient/">FTPClient</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FTPServer/">FTPServer</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/FileLock/">FileLock</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Gson/">Gson</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Java/">Java</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Jersey/">Jersey</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/KONG/">KONG</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Kryo/">Kryo</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Linux/">Linux</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Microservices/">Microservices</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/MongoDB/">MongoDB</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Morphia/">Morphia</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/NFS/">NFS</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nacos/">Nacos</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Nginx/">Nginx</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/OpenSSH/">OpenSSH</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/RESTful-Api/">RESTful Api</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SOCKET/">SOCKET</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spark/">Spark</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Spring-Boot/">Spring-Boot</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Swagger/">Swagger</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/TCP/">TCP</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Tomcat/">Tomcat</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/ramfs/">ramfs</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/业务/">业务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/优化/">优化</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全传输/">安全传输</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/安全认证技术/">安全认证技术</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/微服务/">微服务</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/设计/">设计</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/踩坑/">踩坑</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">标签云</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Ansible/" style="font-size: 10px;">Ansible</a> <a href="/tags/Bug/" style="font-size: 10px;">Bug</a> <a href="/tags/Cheetsheet/" style="font-size: 10px;">Cheetsheet</a> <a href="/tags/Docker/" style="font-size: 10px;">Docker</a> <a href="/tags/FTPClient/" style="font-size: 10px;">FTPClient</a> <a href="/tags/FTPServer/" style="font-size: 10px;">FTPServer</a> <a href="/tags/FileLock/" style="font-size: 10px;">FileLock</a> <a href="/tags/Gson/" style="font-size: 10px;">Gson</a> <a href="/tags/Java/" style="font-size: 15px;">Java</a> <a href="/tags/Jersey/" style="font-size: 12.5px;">Jersey</a> <a href="/tags/KONG/" style="font-size: 10px;">KONG</a> <a href="/tags/Kryo/" style="font-size: 10px;">Kryo</a> <a href="/tags/Linux/" style="font-size: 20px;">Linux</a> <a href="/tags/Microservices/" style="font-size: 15px;">Microservices</a> <a href="/tags/MongoDB/" style="font-size: 17.5px;">MongoDB</a> <a href="/tags/Morphia/" style="font-size: 12.5px;">Morphia</a> <a href="/tags/NFS/" style="font-size: 10px;">NFS</a> <a href="/tags/Nacos/" style="font-size: 10px;">Nacos</a> <a href="/tags/Nginx/" style="font-size: 10px;">Nginx</a> <a href="/tags/OpenSSH/" style="font-size: 10px;">OpenSSH</a> <a href="/tags/RESTful-Api/" style="font-size: 17.5px;">RESTful Api</a> <a href="/tags/SOCKET/" style="font-size: 10px;">SOCKET</a> <a href="/tags/Spark/" style="font-size: 15px;">Spark</a> <a href="/tags/Spring-Boot/" style="font-size: 10px;">Spring-Boot</a> <a href="/tags/Swagger/" style="font-size: 10px;">Swagger</a> <a href="/tags/TCP/" style="font-size: 10px;">TCP</a> <a href="/tags/Tomcat/" style="font-size: 10px;">Tomcat</a> <a href="/tags/ramfs/" style="font-size: 10px;">ramfs</a> <a href="/tags/业务/" style="font-size: 10px;">业务</a> <a href="/tags/优化/" style="font-size: 10px;">优化</a> <a href="/tags/安全传输/" style="font-size: 10px;">安全传输</a> <a href="/tags/安全认证技术/" style="font-size: 12.5px;">安全认证技术</a> <a href="/tags/微服务/" style="font-size: 12.5px;">微服务</a> <a href="/tags/设计/" style="font-size: 10px;">设计</a> <a href="/tags/踩坑/" style="font-size: 20px;">踩坑</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">归档</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/07/">七月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/03/">三月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/01/">一月 2019</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/12/">十二月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/10/">十月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/07/">七月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/05/">五月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/03/">三月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2018/01/">一月 2018</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/11/">十一月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/09/">九月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/08/">八月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/07/">七月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/06/">六月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">五月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/03/">三月 2017</a></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/02/">二月 2017</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最新文章</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2019/07/07/nacos-ephemeral/">Nacos临时节点和永久节点的本质意义</a>
+          </li>
+        
+          <li>
+            <a href="/2019/03/11/design-for-abnormal-payment/">奇葩的异常支付场景</a>
+          </li>
+        
+          <li>
+            <a href="/2019/01/21/macvim-spacevim-characters-illegible-contents/">MacVim使用SpaceVim后中文乱码</a>
+          </li>
+        
+          <li>
+            <a href="/2018/12/01/secure-data-transmission-plan/">相对安全的网络传输方案</a>
+          </li>
+        
+          <li>
+            <a href="/2018/10/21/java-file-lock-on-linux/">在Linux下正确的使用Java锁</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2021 Liu Xin Si<br>
+      Powered by <a href="http://hexo.io/" rel='external nofollow' target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+<script>
+  var disqus_shortname = 'liuxinsi';
+  
+  var disqus_url = 'https://codeandcoffee.cn/2017/11/02/mongodb-orm-morphia-cache-issue/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>
